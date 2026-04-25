@@ -4,102 +4,102 @@
   <title>Live Fleet Tracker</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  
   <style>
-    body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; }
+    body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background-color: #f4f4f9; }
     #map { height: 100vh; width: 100vw; z-index: 1; }
-    
-    /* Custom UI Panel hovering over the map */
     .dashboard-panel {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      z-index: 1000;
-      background: white;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      width: 250px;
+      position: absolute; top: 20px; left: 20px; z-index: 1000;
+      background: white; padding: 20px; border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 260px;
     }
-    .dashboard-panel h2 { margin-top: 0; font-size: 1.2rem; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
-    .data-row { margin: 10px 0; font-size: 0.95rem; color: #555; }
-    .data-value { font-weight: bold; color: #007bff; float: right; }
-    .status-dot { height: 10px; width: 10px; background-color: #28a745; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .dashboard-panel h2 { margin: 0 0 10px 0; font-size: 1.1rem; border-bottom: 2px solid #eee; padding-bottom: 8px; }
+    .data-row { margin: 8px 0; font-size: 0.9rem; color: #444; display: flex; justify-content: space-between; }
+    .data-value { font-weight: bold; color: #007bff; }
+    .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
   </style>
 </head>
 <body>
 
   <div class="dashboard-panel">
-    <h2><span class="status-dot"></span>Car-001 (Active)</h2>
-    <div class="data-row">Satellites: <span id="ui-sats" class="data-value">Loading...</span></div>
+    <h2 id="ui-header"><span id="ui-dot" class="status-dot" style="background-color: #888;"></span>Car-001</h2>
+    <div class="data-row">Satellites: <span id="ui-sats" class="data-value">--</span></div>
     <div class="data-row">Latitude: <span id="ui-lat" class="data-value">--</span></div>
     <div class="data-row">Longitude: <span id="ui-lng" class="data-value">--</span></div>
-    <div class="data-row" style="font-size: 0.8rem; margin-top: 20px; color: #888;">
-      Last Updated: <span id="ui-time">--</span>
+    <div class="data-row" style="font-size: 0.75rem; color: #999; margin-top: 15px;">
+      Last Server Update: <span id="ui-time">--</span>
     </div>
   </div>
 
   <div id="map"></div>
 
-  <script>
-    // --- Configuration ---
+<script>
     const blynkToken = "6fub_AeSZfywBab9j-d7KRXWKFPMwIxz";
     const blynkServer = "sgp1.blynk.cloud"; 
-    
-    // Initialize the map (Centered on your first coordinate in Laguna)
-    const map = L.map('map').setView([14.260040, 121.396011], 16);
 
-    // Load the free OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
+    const map = L.map('map').setView([14.2600, 121.3958], 16);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
 
-    // Create the car marker
-    let carMarker = L.marker([14.260040, 121.396011]).addTo(map);
-    carMarker.bindPopup("<b>Car-001</b><br>Currently Active").openPopup();
+    const carIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/744/744465.png',
+        iconSize: [40, 40], iconAnchor: [20, 20]
+    });
 
-    // Function to silently fetch data from Blynk
-    async function getBlynkData(pin) {
-      try {
-        const response = await fetch(`https://${blynkServer}/external/api/get?token=${blynkToken}&${pin}`);
-        return await response.text();
-      } catch (error) {
-        console.error("Network error fetching pin: ", pin);
-        return null;
-      }
-    }
+    let carMarker = L.marker([14.2600, 121.3958], {icon: carIcon}).addTo(map);
 
-    // Main update loop
+    // This tracks the last time the HTML successfully received a V4 update
+    let lastActiveTime = Date.now();
+    let lastV4Value = null;
+
     async function updateDashboard() {
-      // Fetch V1, V2, and V3 simultaneously
-      const lat = await getBlynkData("v1");
-      const lng = await getBlynkData("v2");
-      const sats = await getBlynkData("v3");
-
-      if (lat && lng && sats) {
-        const floatLat = parseFloat(lat);
-        const floatLng = parseFloat(lng);
-
-        // Update HTML text
-        document.getElementById("ui-lat").innerText = floatLat.toFixed(5);
-        document.getElementById("ui-lng").innerText = floatLng.toFixed(5);
-        document.getElementById("ui-sats").innerText = sats;
-        document.getElementById("ui-time").innerText = new Date().toLocaleTimeString();
-
-        // Move the marker to the new GPS location
-        const newLatLng = new L.LatLng(floatLat, floatLng);
-        carMarker.setLatLng(newLatLng);
+      try {
+        // Fetch V1, V2, V3, and our new Heartbeat V4
+        const r = await fetch(`https://${blynkServer}/external/api/get?token=${blynkToken}&v1&v2&v3&v4&_=${Date.now()}`);
+        const data = await r.json();
         
-        // Optional: Make the map automatically follow the car
-        map.panTo(newLatLng); 
-      }
+        if (data) {
+          // 1. UPDATE STATISTICS (Always Active)
+          document.getElementById("ui-lat").innerText = data.v1 || "--";
+          document.getElementById("ui-lng").innerText = data.v2 || "--";
+          document.getElementById("ui-sats").innerText = data.v3 || "0";
+
+          // Move the car on the map
+          const lat = parseFloat(data.v1);
+          const lng = parseFloat(data.v2);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            carMarker.setLatLng([lat, lng]);
+            map.panTo([lat, lng]);
+          }
+
+          // 2. THE HEARTBEAT FORMULA
+          const dot = document.getElementById("ui-dot");
+          const header = document.getElementById("ui-header");
+          const timeDisplay = document.getElementById("ui-time");
+          const now = Date.now();
+
+          // If V4 exists and is different from the last time we checked
+          // It means the ESP32 is actively pushing new data
+          if (data.v4 !== undefined && data.v4 !== lastV4Value) {
+            lastActiveTime = now;
+            lastV4Value = data.v4;
+
+            // ONLINE: Update Status and Time
+            dot.style.backgroundColor = "#28a745";
+            header.innerHTML = `<span id="ui-dot" class="status-dot" style="background-color:#28a745"></span>Car-001 (Active)`;
+            timeDisplay.innerText = new Date().toLocaleTimeString();
+          }
+
+          // WATCHDOG: If CurrentTime - lastActiveTime > 90 seconds
+          if (now - lastActiveTime > 90000) {
+            // OFFLINE: Change Status, but FREEZE the time display
+            dot.style.backgroundColor = "#dc3545";
+            header.innerHTML = `<span id="ui-dot" class="status-dot" style="background-color:#dc3545"></span>Car-001 (Offline)`;
+          }
+        }
+      } catch (e) { console.log("Dashboard fetch error"); }
     }
 
-    // Run the update immediately, then refresh every 10 seconds
     updateDashboard();
-    setInterval(updateDashboard, 10000);
-
-  </script>
+    setInterval(updateDashboard, 5000); 
+</script>
 </body>
 </html>

@@ -176,12 +176,15 @@ void sendDataToCloud(float lat, float lng, int sats) {
   cloudStatus = "Syncing...";
   updateDisplay(); 
   
-  // CHANGED: We are now using the /batch/update endpoint
-  // This is the most reliable way to send multiple pins to Blynk
+  // Create the URL
   String url = "/external/api/batch/update?token=" + String(auth);
   url += "&v1=" + String(lat, 6);
   url += "&v2=" + String(lng, 6);
   url += "&v3=" + String(sats);
+  
+  // FIX 1: Added the '=' sign
+  // FIX 2: Added '()' to millis
+  url += "&v4=" + String(millis()); 
   
   Serial.print("Batch Sending: ");
   Serial.println(url);
@@ -191,6 +194,7 @@ void sendDataToCloud(float lat, float lng, int sats) {
   http.endRequest();
 
   int statusCode = http.responseStatusCode();
+  // We don't need to store the body, but calling it clears the buffer
   http.responseBody(); 
 
   if (statusCode == 200) {
