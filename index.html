@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live Fleet Tracker</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <style>
+    body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; }
+    #map { height: 100vh; width: 100vw; z-index: 1; }
+    
+    /* Custom UI Panel hovering over the map */
+    .dashboard-panel {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 1000;
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      width: 250px;
+    }
+    .dashboard-panel h2 { margin-top: 0; font-size: 1.2rem; color: #333; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+    .data-row { margin: 10px 0; font-size: 0.95rem; color: #555; }
+    .data-value { font-weight: bold; color: #007bff; float: right; }
+    .status-dot { height: 10px; width: 10px; background-color: #28a745; border-radius: 50%; display: inline-block; margin-right: 5px; }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-panel">
+    <h2><span class="status-dot"></span>Car-001 (Active)</h2>
+    <div class="data-row">Satellites: <span id="ui-sats" class="data-value">Loading...</span></div>
+    <div class="data-row">Latitude: <span id="ui-lat" class="data-value">--</span></div>
+    <div class="data-row">Longitude: <span id="ui-lng" class="data-value">--</span></div>
+    <div class="data-row" style="font-size: 0.8rem; margin-top: 20px; color: #888;">
+      Last Updated: <span id="ui-time">--</span>
+    </div>
+  </div>
+
+  <div id="map"></div>
+
+  <script>
+    // --- Configuration ---
+    const blynkToken = "6fub_AeSZfywBab9j-d7KRXWKFPMwIxz";
+    const blynkServer = "sgp1.blynk.cloud"; 
+    
+    const map = L.map('map').setView([14.260040, 121.396011], 16);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      attribution: '© CARTO'
+    }).addTo(map);
+
+    const carIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/744/744465.png',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -20]
+    });
+
+    let carMarker = L.marker([14.260040, 121.396011], {icon: carIcon}).addTo(map);
+    carMarker.bindPopup("<b>Car-001</b>").openPopup();
+
+    // NEW: Function to check if the device is actually online
+    async function checkDeviceStatus() {
+      try {
+        const response = await fetch(`https://${blynkServer}/external/api/isAppConnected?token=${blynkToken}`);
+        const isOnline = await response.text(); // returns "true" or "false"
+        
+        const statusDot = document.querySelector(".status-dot");
+        const statusText = document.querySelector("h2");
+
+        if (isOnline === "true") {
+          statusDot.style.backgroundColor = "#28a745"; // Green
+          statusText.innerHTML = '<span class="status-dot" style="background-color:#28a745"></span>Car-001 (Active)';
+        } else {
+          statusDot.style.backgroundColor = "#dc3545"; // Red
+          statusText.innerHTML = '<span class="status-dot" style="background-color:#dc3545"></span>Car-001 (Offline)';
+        }
+      } catch (e) { console.error("Status check failed"); }
+    }
+
+    async function getBlynkData(pin) {
+      try {
+        const response = await fetch(`https://${blynkServer}/external/api/get?token=${blynkToken}&${pin}&_=${Date.now()}`);
+        const text = await response.text();
+        return text.replace(/[\[\]"\s]/g, '').trim();
+      } catch (error) { return null; }
+    }
+
+    async function updateDashboard() {
+      // First, check if the device is still breathing
+      await checkDeviceStatus();
+
+      const latStr = await getBlynkData("v1");
+      const lngStr = await getBlynkData("v2");
+      const satsStr = await getBlynkData("v3");
+
+      const floatLat = parseFloat(latStr);
+      const floatLng = parseFloat(lngStr);
+
+      if (!isNaN(floatLat) && !isNaN(floatLng) && floatLat !== 0) {
+        document.getElementById("ui-lat").innerText = floatLat.toFixed(5);
+        document.getElementById("ui-lng").innerText = floatLng.toFixed(5);
+        document.getElementById("ui-sats").innerText = satsStr;
+        document.getElementById("ui-time").innerText = new Date().toLocaleTimeString();
+
+        const newLatLng = new L.LatLng(floatLat, floatLng);
+        carMarker.setLatLng(newLatLng);
+        // We only pan the map if the device is active
+      }
+    }
+
+    updateDashboard();
+    setInterval(updateDashboard, 10000); // Check every 10 seconds
+
+  </script>
+</body>
+</html>
