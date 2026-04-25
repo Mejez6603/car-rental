@@ -3,6 +3,8 @@
 
 A real-time GPS tracking system utilizing an **ESP32** and **SIM800L** to transmit telemetric data to a web-based dashboard via the **Blynk IoT Cloud**.
 
+![](image/image001.png) 
+
 ## 📝 Description
 This project provides a low-latency solution for vehicle monitoring. By leveraging cellular data, the system transmits coordinates, satellite strength, and a heartbeat signal to the cloud. The frontend dashboard then visualizes the car's movement on an interactive map and provides a "Watchdog" status monitoring system to notify users if the device goes offline.
 
