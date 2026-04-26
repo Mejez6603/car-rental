@@ -89,7 +89,7 @@
           }
 
           // WATCHDOG: If CurrentTime - lastActiveTime > 90 seconds
-          if (now - lastActiveTime > 90000) {
+          if (now - lastActiveTime > 15000) {
             // OFFLINE: Change Status, but FREEZE the time display
             dot.style.backgroundColor = "#dc3545";
             header.innerHTML = `<span id="ui-dot" class="status-dot" style="background-color:#dc3545"></span>Car-001 (Offline)`;
