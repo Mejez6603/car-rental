@@ -17,7 +17,7 @@ const char gprsPass[] = "";
 // --- Cloud Server Details (Make.com Middleman) ---
 const char server[]   = "sgp1.blynk.cloud"; 
 const int  port       = 80; // We keep standard Port 80!
-const char auth[]     = "6fub_AeSZfywBab9j-d7KRXWKFPMwIxz";
+const char auth[]     = "6fub_AeSZfywBab9j-d7KRXWKFPMwIxz"; //SESSION id || TOKEN
 
 // --- OLED Configuration ---
 #define SCREEN_WIDTH 128
