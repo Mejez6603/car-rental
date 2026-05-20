@@ -1,5 +1,5 @@
 // Select your modem type BEFORE including the TinyGSM library
-#define TINY_GSM_MODEM_SIM800 
+#define TINY_GSM_MODEM_SIM800
 
 #include <HardwareSerial.h>
 #include <TinyGPSPlus.h>
@@ -71,10 +71,10 @@ void setup() {
 
   // Initialize Serial connections
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
-  simSerial.begin(9600, SERIAL_8N1, SIM_RX, SIM_TX);
+  simSerial.begin(115200, SERIAL_8N1, SIM_RX, SIM_TX);
 
   display.setCursor(0, 20);
-  display.println("Init SIM800L...");
+  display.println("Init Air780E...");
   display.display();
   
   modem.restart();
