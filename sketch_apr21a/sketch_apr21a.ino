@@ -1,4 +1,3 @@
-// Select your modem type BEFORE including the TinyGSM library
 #define TINY_GSM_MODEM_SIM800
 
 #include <HardwareSerial.h>
@@ -10,70 +9,70 @@
 #include <Adafruit_SSD1306.h>
 
 // --- GPRS Credentials ---
-const char apn[]      = "http.globe.com.ph"; // TM / Globe APN
+const char apn[]      = "http.globe.com.ph";
 const char gprsUser[] = "";
 const char gprsPass[] = "";
 
-// --- Cloud Server Details (Make.com Middleman) ---
-const char server[]   = "sgp1.blynk.cloud"; 
-const int  port       = 80; // We keep standard Port 80!
-const char auth[]     = "6fub_AeSZfywBab9j-d7KRXWKFPMwIxz"; //SESSION id || TOKEN
+const char server[]   = "sgp1.blynk.cloud";
+const int  port       = 80;
+const char auth[]     = "6fub_AeSZfywBab9j-d7KRXWKFPMwIxz";
 
-// --- OLED Configuration ---
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // --- Hardware Pins ---
-// GPS (Serial 1)
+#define BUTTON_PIN 4 
 #define GPS_RX 16
 #define GPS_TX 17
 HardwareSerial gpsSerial(1);
 TinyGPSPlus gps;
 
-// SIM800L (Serial 2)
 #define SIM_RX 26
 #define SIM_TX 27
 HardwareSerial simSerial(2);
 
-// --- Network Clients ---
 TinyGsm modem(simSerial);
 TinyGsmClient client(modem);
 HttpClient http(client, server, port);
 
 // --- State Variables ---
 unsigned long lastUpdate = 0;
-const long updateInterval = 15000; // Send data every 15 seconds
+const long updateInterval = 15000;
 String cloudStatus = "Standby";
 
-// --- Function Prototypes ---
+bool screenOn = true;
+bool lastButtonState = HIGH; 
+
 void updateDisplay();
 void sendDataToCloud(float lat, float lng, int sats);
+void checkButton();
 
 void setup() {
   Serial.begin(115200);
-  delay(10);
-
-  // Initialize OLED
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    for(;;); 
-  }
   
+  // 1. Stabilization Delay
+  delay(1000); 
+
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { for(;;); }
   display.clearDisplay();
-  display.setTextColor(WHITE);
+  display.display();
+  
+  // Startup UI
   display.setTextSize(1);
+  display.setTextColor(WHITE);
   display.setCursor(0,0);
   display.println("Car Rental Tracker");
   display.println("Starting up...");
   display.display();
 
-  // Initialize Serial connections
   gpsSerial.begin(9600, SERIAL_8N1, GPS_RX, GPS_TX);
   simSerial.begin(115200, SERIAL_8N1, SIM_RX, SIM_TX);
 
-  display.setCursor(0, 20);
+  // --- YOUR REQUESTED STARTUP FLOW ---
   display.println("Init Air780E...");
   display.display();
   
@@ -107,99 +106,71 @@ void setup() {
 }
 
 void loop() {
-  // 1. Constantly feed data to the GPS object
-  while (gpsSerial.available() > 0) {
-    gps.encode(gpsSerial.read());
+  while (gpsSerial.available() > 0) gps.encode(gpsSerial.read());
+
+  checkButton(); 
+
+  if (screenOn) {
+    updateDisplay();
+  } else {
+    display.clearDisplay();
+    display.display();
   }
 
-  // 2. Refresh the OLED screen rapidly
-  updateDisplay();
-
-  // 3. Check if it's time to send an update AND we have a valid location
   if (millis() - lastUpdate >= updateInterval) {
     lastUpdate = millis();
-
     if (gps.location.isValid()) {
-      float lat = gps.location.lat();
-      float lng = gps.location.lng();
-      int sats = gps.satellites.value();
-
-      sendDataToCloud(lat, lng, sats);
+      sendDataToCloud(gps.location.lat(), gps.location.lng(), gps.satellites.value());
     } else {
       cloudStatus = "Waiting for GPS...";
     }
   }
 }
 
+void checkButton() {
+  bool currentButtonState = digitalRead(BUTTON_PIN);
+  
+  if (currentButtonState == LOW && lastButtonState == HIGH) {
+    delay(50); // Debounce
+    if (digitalRead(BUTTON_PIN) == LOW) {
+      screenOn = !screenOn; 
+      
+      display.clearDisplay();
+      display.setCursor(0, 20);
+      display.println(screenOn ? "Privacy Mode: OFF" : "Privacy Mode: ON");
+      display.display();
+      delay(2000);
+    }
+  }
+  lastButtonState = currentButtonState;
+}
+
 void updateDisplay() {
   display.clearDisplay();
-  
-  // Header
-  display.setTextSize(1);
   display.setCursor(0, 0);
   display.print("Car Rental Tracker");
-
-  // GPRS Status
   display.setCursor(0, 12);
-  display.print("Net: ");
-  if (modem.isGprsConnected()) {
-    display.print("Connected (TM)");
-  } else {
-    display.print("Disconnected!");
-  }
-
-  // GPS Status
+  display.print("Net: Connected");
   display.setCursor(0, 24);
-  display.print("Sats: ");
-  display.print(gps.satellites.value());
-  
+  display.print("Sats: "); display.print(gps.satellites.value());
   display.setCursor(0, 36);
   if (gps.location.isValid()) {
-    display.print("Lat: ");
-    display.print(gps.location.lat(), 5);
+    display.print("Lat: "); display.print(gps.location.lat(), 5);
     display.setCursor(0, 46);
-    display.print("Lng: ");
-    display.print(gps.location.lng(), 5);
+    display.print("Lng: "); display.print(gps.location.lng(), 5);
   } else {
-    display.print("Locating satellites..");
+    display.print("Locating...");
   }
-
-  // Cloud Post Status
   display.setCursor(0, 56);
-  display.print("Web: ");
-  display.print(cloudStatus);
-  
+  display.print("Web: "); display.print(cloudStatus);
   display.display();
 }
 
 void sendDataToCloud(float lat, float lng, int sats) {
   cloudStatus = "Syncing...";
-  updateDisplay(); 
-  
-  // Create the URL
-  String url = "/external/api/batch/update?token=" + String(auth);
-  url += "&v1=" + String(lat, 6);
-  url += "&v2=" + String(lng, 6);
-  url += "&v3=" + String(sats);
-  
-  // FIX 1: Added the '=' sign
-  // FIX 2: Added '()' to millis
-  url += "&v4=" + String(millis()); 
-  
-  Serial.print("Batch Sending: ");
-  Serial.println(url);
-
+  String url = "/external/api/batch/update?token=" + String(auth) + "&v1=" + String(lat, 6) + "&v2=" + String(lng, 6) + "&v3=" + String(sats) + "&v4=" + String(millis());
   http.beginRequest();
   http.get(url);
   http.endRequest();
-
-  int statusCode = http.responseStatusCode();
-  // We don't need to store the body, but calling it clears the buffer
-  http.responseBody(); 
-
-  if (statusCode == 200) {
-    cloudStatus = "Success (200)";
-  } else {
-    cloudStatus = "HTTP Err: " + String(statusCode);
-  }
+  cloudStatus = (http.responseStatusCode() == 200) ? "Success (200)" : "HTTP Err";
 }

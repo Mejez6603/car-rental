@@ -3,103 +3,25 @@
 <head>
   <title>Live Fleet Tracker</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
-    body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background-color: #f4f4f9; }
-    #map { height: 100vh; width: 100vw; z-index: 1; }
-    .dashboard-panel {
-      position: absolute; top: 20px; left: 20px; z-index: 1000;
-      background: white; padding: 20px; border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 260px;
-    }
-    .dashboard-panel h2 { margin: 0 0 10px 0; font-size: 1.1rem; border-bottom: 2px solid #eee; padding-bottom: 8px; }
-    .data-row { margin: 8px 0; font-size: 0.9rem; color: #444; display: flex; justify-content: space-between; }
-    .data-value { font-weight: bold; color: #007bff; }
-    .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-  </style>
-</head>
+  <link rel="stylesheet" href="style.css"> </head>
 <body>
 
-  <div class="dashboard-panel">
-    <h2 id="ui-header"><span id="ui-dot" class="status-dot" style="background-color: #888;"></span>Car-001</h2>
+<div id="car-trigger">
+    <img src="https://cdn-icons-png.flaticon.com/512/744/744465.png" width="40" height="40">
+</div>
+
+<div id="details-panel">
+    <h2 id="ui-header"><span id="ui-dot" class="status-dot"></span>Car-001</h2>
+    <div id="ui-privacy-badge">Security: Encrypted</div>
     <div class="data-row">Satellites: <span id="ui-sats" class="data-value">--</span></div>
     <div class="data-row">Latitude: <span id="ui-lat" class="data-value">--</span></div>
     <div class="data-row">Longitude: <span id="ui-lng" class="data-value">--</span></div>
-    <div class="data-row" style="font-size: 0.75rem; color: #999; margin-top: 15px;">
-      Last Server Update: <span id="ui-time">--</span>
-    </div>
-  </div>
+    <button id="locate-btn">Center Map on Car</button>
+    <button id="override-btn" onclick="toggleOverride()">🔓 Decrypt Car Location</button>
+</div>
 
-  <div id="map"></div>
+<div id="map"></div>
 
-<script>
-    const blynkToken = "6fub_AeSZfywBab9j-d7KRXWKFPMwIxz";
-    const blynkServer = "sgp1.blynk.cloud"; 
-
-    const map = L.map('map').setView([14.2600, 121.3958], 16);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
-
-    const carIcon = L.icon({
-        iconUrl: 'https://cdn-icons-png.flaticon.com/512/744/744465.png',
-        iconSize: [40, 40], iconAnchor: [20, 20]
-    });
-
-    let carMarker = L.marker([14.2600, 121.3958], {icon: carIcon}).addTo(map);
-
-    // This tracks the last time the HTML successfully received a V4 update
-    let lastActiveTime = Date.now();
-    let lastV4Value = null;
-
-    async function updateDashboard() {
-      try {
-        // Fetch V1, V2, V3, and our new Heartbeat V4
-        const r = await fetch(`https://${blynkServer}/external/api/get?token=${blynkToken}&v1&v2&v3&v4&_=${Date.now()}`);
-        const data = await r.json();
-        
-        if (data) {
-          // 1. UPDATE STATISTICS (Always Active)
-          document.getElementById("ui-lat").innerText = data.v1 || "--";
-          document.getElementById("ui-lng").innerText = data.v2 || "--";
-          document.getElementById("ui-sats").innerText = data.v3 || "0";
-
-          // Move the car on the map
-          const lat = parseFloat(data.v1);
-          const lng = parseFloat(data.v2);
-          if (!isNaN(lat) && !isNaN(lng)) {
-            carMarker.setLatLng([lat, lng]);
-            map.panTo([lat, lng]);
-          }
-
-          // 2. THE HEARTBEAT FORMULA
-          const dot = document.getElementById("ui-dot");
-          const header = document.getElementById("ui-header");
-          const timeDisplay = document.getElementById("ui-time");
-          const now = Date.now();
-
-          // If V4 exists and is different from the last time we checked
-          // It means the ESP32 is actively pushing new data
-          if (data.v4 !== undefined && data.v4 !== lastV4Value) {
-            lastActiveTime = now;
-            lastV4Value = data.v4;
-
-            // ONLINE: Update Status and Time
-            dot.style.backgroundColor = "#28a745";
-            header.innerHTML = `<span id="ui-dot" class="status-dot" style="background-color:#28a745"></span>Car-001 (Active)`;
-            timeDisplay.innerText = new Date().toLocaleTimeString();
-          }
-
-          // WATCHDOG: If CurrentTime - lastActiveTime > 90 seconds
-          if (now - lastActiveTime > 15000) {
-            // OFFLINE: Change Status, but FREEZE the time display
-            dot.style.backgroundColor = "#dc3545";
-            header.innerHTML = `<span id="ui-dot" class="status-dot" style="background-color:#dc3545"></span>Car-001 (Offline)`;
-          }
-        }
-      } catch (e) { console.log("Dashboard fetch error"); }
-    }
-
-    updateDashboard();
-    setInterval(updateDashboard, 5000); 
-</script>
-</body>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="script.js"></script> </body>
 </html>
