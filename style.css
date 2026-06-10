@@ -10,9 +10,11 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background-co
 
 #details-panel {
     position: absolute; bottom: 80px; left: 20px; z-index: 1000;
-    background: white; padding: 20px; border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 260px;
+    background: white; padding: 16px; border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    width: min(260px, calc(100vw - 40px));
     display: none;
+    box-sizing: border-box;
 }
 .data-row { margin: 8px 0; font-size: 0.9rem; color: #444; display: flex; justify-content: space-between; }
 .data-value { font-weight: bold; color: #007bff; }
@@ -20,3 +22,10 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; background-co
 #ui-privacy-badge { text-align: center; padding: 6px; margin-bottom: 12px; border-radius: 5px; font-size: 0.8rem; font-weight: bold; transition: 0.3s; }
 #locate-btn { width: 100%; margin-top: 15px; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
 #override-btn { width: 100%; margin-top: 10px; padding: 10px; background-color: #ffc107; color: #212529; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+
+/* Responsive: very small screens (phones under 360px wide) */
+@media (max-width: 360px) {
+    #details-panel { left: 10px; right: 10px; width: auto; padding: 12px; }
+    #car-trigger { bottom: 10px; left: 10px; }
+    .data-row { font-size: 0.8rem; }
+}
