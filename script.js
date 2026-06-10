@@ -13,7 +13,6 @@ let markerIsOnMap = false;
 
 // State Variables
 let lastActiveTime = Date.now();
-let lastV4Value = null;
 let isDecrypted = false; // Default: Encrypted/Locked
 
 // --- UI EVENT LISTENERS ---
@@ -56,9 +55,10 @@ async function updateDashboard() {
     
     if (data) {
       // 1. Connection Status (20-second timeout)
-      if (data.v4 !== undefined && data.v4 !== lastV4Value) {
+      // FIX: Update lastActiveTime on every poll (not just when v4 changes),
+      // so the panel and car icon don't vanish when v4 stays the same value.
+      if (data.v4 !== undefined) {
         lastActiveTime = now;
-        lastV4Value = data.v4;
       }
       const isOnline = (now - lastActiveTime < 20000);
       
