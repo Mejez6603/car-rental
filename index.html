@@ -13,12 +13,26 @@
 
 <div id="details-panel">
     <h2 id="ui-header"><span id="ui-dot" class="status-dot"></span>Car-001</h2>
-    <div id="ui-privacy-badge">Security: Encrypted</div>
+    <div id="ui-privacy-badge" class="privacy-badge">Security: Encrypted</div>
     <div class="data-row">Satellites: <span id="ui-sats" class="data-value">--</span></div>
     <div class="data-row">Latitude: <span id="ui-lat" class="data-value">--</span></div>
     <div class="data-row">Longitude: <span id="ui-lng" class="data-value">--</span></div>
-    <button id="locate-btn">Center Map on Car</button>
-    <button id="override-btn" onclick="toggleOverride()">🔓 Decrypt Car Location</button>
+    <button id="locate-btn" class="locate-btn">Center Map on Car</button>
+    <button id="override-btn" class="override-btn" onclick="toggleOverride()">🔓 Decrypt Car Location</button>
+</div>
+
+<div id="car-trigger-2">
+    <img src="https://cdn-icons-png.flaticon.com/512/744/744465.png" width="40" height="40">
+</div>
+
+<div id="details-panel-2">
+    <h2 id="ui-header-2"><span id="ui-dot-2" class="status-dot"></span>Car-002</h2>
+    <div id="ui-privacy-badge-2" class="privacy-badge">Security: Encrypted</div>
+    <div class="data-row">Satellites: <span id="ui-sats-2" class="data-value">--</span></div>
+    <div class="data-row">Latitude: <span id="ui-lat-2" class="data-value">--</span></div>
+    <div class="data-row">Longitude: <span id="ui-lng-2" class="data-value">--</span></div>
+    <button id="locate-btn-2" class="locate-btn">Center Map on Car</button>
+    <button id="override-btn-2" class="override-btn" onclick="toggleOverride2()">🔓 Decrypt Car Location</button>
 </div>
 
 <div id="map"></div>
