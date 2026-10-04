@@ -5,7 +5,7 @@ const blynkServer = "sgp1.blynk.cloud";
 
 const cartoApiKey = "cb1_3p3v_1_c7e75ca303dcbd4b49651900";
 
-const map = L.map('map').setView([14.2600, 121.3958], 16);
+const map = L.map('map').setView([14.0893, 121.3138], 15);
 L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${cartoApiKey}`, {
     attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>'
 }).addTo(map);
@@ -62,19 +62,58 @@ function updateMarkerPopup(marker, carName, lat, lng, sats) {
 }
 
 const carIcon = createYiPinIcon('car1', '01·CAR-001', false);
-let carMarker = L.marker([14.2600, 121.3958], { icon: carIcon });
+let carMarker = L.marker([14.0893, 121.3138], { icon: carIcon });
 let markerIsOnMap = false;
 
 const carIcon2 = createYiPinIcon('car2', '02·CAR-002', true);
-let carMarker2 = L.marker([14.2600, 121.3958], { icon: carIcon2 });
+let carMarker2 = L.marker([14.0893, 121.3138], { icon: carIcon2 });
 let markerIsOnMap2 = false;
 
-// State Variables
-let lastActiveTime = Date.now();
-let isDecrypted = false; // Default: Encrypted/Locked
+// --- PRIVACY & DECRYPTION STATES ---
+// Default: DECRYPTED AGAD pag bukas ng Admin!
+let isDecrypted = true; 
+let isDecrypted2 = true;
 
+// Track if renter explicitly requested privacy opt-out
+let privacyRequested1 = false;
+let privacyRequested2 = false;
+let renterName1 = '';
+let renterName2 = '';
+
+let lastActiveTime = Date.now();
 let lastActiveTime2 = Date.now();
-let isDecrypted2 = false; // Default: Encrypted/Locked
+
+// --- CHECK RENTER PRIVACY OPT-OUT FROM AUTORIDE BACKEND ---
+async function checkRenterPrivacyOptOut() {
+    try {
+        const res = await fetch('https://autoride-booking-system.vercel.app/api/gps-privacy-status');
+        if (res.ok) {
+            const data = await res.json();
+            // Data contains vehicles whose current renter opted out of GPS tracking
+            for (const [vId, info] of Object.entries(data || {})) {
+                const combined = `${info.brand || ''} ${info.model || ''} ${info.plate_number || ''} ${info.gps_device_name || ''}`.toUpperCase();
+                
+                // If it matches Montero Sport, Vehicle #12, or Car-001
+                if (combined.includes('MONTERO') || combined.includes('DUY 6527') || combined.includes('CAR-001') || vId === '12') {
+                    privacyRequested1 = true;
+                    renterName1 = info.customer_name || 'Renter';
+                    isDecrypted = false; // Masked upon opening for this vehicle only!
+                }
+
+                // If it matches Car-002
+                if (combined.includes('CAR-002') || combined.includes('VIOS') || combined.includes('UNIT 2')) {
+                    privacyRequested2 = true;
+                    renterName2 = info.customer_name || 'Renter';
+                    isDecrypted2 = false; // Masked upon opening for this vehicle only!
+                }
+            }
+        }
+    } catch (e) {
+        console.log('[GPS] Privacy check error:', e);
+    }
+    updateDashboard();
+    updateDashboard2();
+}
 
 // --- FLEET BAR & VIEW ALL DEVICES LOGIC ---
 function updateFleetBar() {
@@ -101,7 +140,7 @@ function fitAllDevices() {
     }
 
     if (points.length === 0) {
-        alert("No decrypted active devices currently on map. Click the car icon to decrypt location first.");
+        alert("No decrypted active devices currently on map. Click a car icon to decrypt / override.");
     } else if (points.length === 1) {
         map.setView(points[0], 16);
     } else {
@@ -121,7 +160,7 @@ document.getElementById("locate-btn").addEventListener("click", () => {
     if (markerIsOnMap) {
         map.setView(carMarker.getLatLng(), 16);
     } else {
-        alert("Location is currently encrypted or offline.");
+        alert("Location is currently encrypted or offline. Click Emergency Override to decrypt.");
     }
 });
 
@@ -136,21 +175,21 @@ document.getElementById("locate-btn-2").addEventListener("click", () => {
     if (markerIsOnMap2) {
         map.setView(carMarker2.getLatLng(), 16);
     } else {
-        alert("Location is currently encrypted or offline.");
+        alert("Location is currently encrypted or offline. Click Emergency Override to decrypt.");
     }
 });
 
-// --- DECRYPT BUTTON LOGIC ---
+// --- DECRYPT / EMERGENCY OVERRIDE LOGIC ---
 function toggleOverride() {
     isDecrypted = !isDecrypted;
     const btn = document.getElementById("override-btn");
     
     if (isDecrypted) {
-        btn.innerText = "🔒 Re-Encrypt Location";
-        btn.style.backgroundColor = "#dc3545";
+        btn.innerText = "🔒 Mask Location";
+        btn.style.backgroundColor = "#475569";
         btn.style.color = "white";
     } else {
-        btn.innerText = "🔓 Decrypt Car Location";
+        btn.innerText = "🔓 Decrypt Location (Emergency Override)";
         btn.style.backgroundColor = "#ffc107";
         btn.style.color = "#212529";
     }
@@ -162,18 +201,18 @@ function toggleOverride2() {
     const btn = document.getElementById("override-btn-2");
 
     if (isDecrypted2) {
-        btn.innerText = "🔒 Re-Encrypt Location";
-        btn.style.backgroundColor = "#dc3545";
+        btn.innerText = "🔒 Mask Location";
+        btn.style.backgroundColor = "#475569";
         btn.style.color = "white";
     } else {
-        btn.innerText = "🔓 Decrypt Car Location";
+        btn.innerText = "🔓 Decrypt Location (Emergency Override)";
         btn.style.backgroundColor = "#ffc107";
         btn.style.color = "#212529";
     }
     updateDashboard2();
 }
 
-// --- CORE DASHBOARD LOGIC ---
+// --- CORE DASHBOARD LOGIC (CAR-001) ---
 async function updateDashboard() {
   try {
     const r = await fetch(`https://${blynkServer}/external/api/get?token=${blynkToken}&v1&v2&v3&v4&_=${Date.now()}`);
@@ -195,31 +234,50 @@ async function updateDashboard() {
           return;
       }
 
+      const badge = document.getElementById("ui-privacy-badge");
+      const btn = document.getElementById("override-btn");
+
       // PRIVACY/ENCRYPTION GATEKEEPER
       if (!isDecrypted) {
-          // --- ENCRYPTED STATE ---
+          // --- ENCRYPTED STATE (e.g. Renter Opted Out or Admin Masked) ---
           document.getElementById("ui-lat").innerText = "*** ENCRYPTED ***";
           document.getElementById("ui-lng").innerText = "*** ENCRYPTED ***";
-          document.getElementById("ui-sats").innerText = "Hidden";
-          document.getElementById("ui-privacy-badge").innerText = "Security: Encrypted";
-          document.getElementById("ui-privacy-badge").style.background = "#fff3cd"; 
-          document.getElementById("ui-privacy-badge").style.color = "#856404";
+          document.getElementById("ui-sats").innerText = "Protected";
+          
+          if (privacyRequested1) {
+              badge.innerText = `Security: Encrypted (${renterName1 || 'Renter'} Privacy Requested)`;
+              badge.style.background = "#fee2e2";
+              badge.style.color = "#991b1b";
+              btn.innerText = "🔓 Decrypt Location (Emergency Override)";
+              btn.style.backgroundColor = "#eab308";
+              btn.style.color = "#000";
+          } else {
+              badge.innerText = "Security: Masked by Admin";
+              badge.style.background = "#fff3cd";
+              badge.style.color = "#856404";
+              btn.innerText = "🔓 Unmask Location";
+              btn.style.backgroundColor = "#ffc107";
+              btn.style.color = "#212529";
+          }
           
           if (markerIsOnMap) { map.removeLayer(carMarker); markerIsOnMap = false; }
           updateFleetBar();
       } else {
-          // --- DECRYPTED STATE ---
+          // --- DECRYPTED STATE (Default Live) ---
           updateCoordinates(data);
-          document.getElementById("ui-privacy-badge").innerText = "Security: Decrypted";
-          document.getElementById("ui-privacy-badge").style.background = "#d4edda";
-          document.getElementById("ui-privacy-badge").style.color = "#155724";
+          badge.innerText = "Security: Decrypted • Live Active";
+          badge.style.background = "#d4edda";
+          badge.style.color = "#155724";
+          btn.innerText = "🔒 Mask Location";
+          btn.style.backgroundColor = "#475569";
+          btn.style.color = "white";
       }
 
       // UI Cleanup
       document.getElementById("car-trigger").style.display = "block";
       document.getElementById("ui-dot").style.backgroundColor = "#28a745";
     }
-  } catch (e) { console.log("Fetch error"); }
+  } catch (e) { console.log("Fetch error (Car-001)"); }
 }
 
 function updateCoordinates(data) {
@@ -230,12 +288,13 @@ function updateCoordinates(data) {
     const lng = parseFloat(data.v2);
     if (!isNaN(lat) && !isNaN(lng)) {
         carMarker.setLatLng([lat, lng]);
-        updateMarkerPopup(carMarker, 'Car-001 (01·CAR-001)', lat, lng, data.v3 || '0');
+        updateMarkerPopup(carMarker, 'Car-001 (Montero Sport)', lat, lng, data.v3 || '0');
         if (!markerIsOnMap) { carMarker.addTo(map); markerIsOnMap = true; }
         updateFleetBar();
     }
 }
 
+// --- CORE DASHBOARD LOGIC (CAR-002) ---
 async function updateDashboard2() {
   try {
     const r = await fetch(`https://${blynkServer}/external/api/get?token=${blynkToken}&v5&v6&v7&v8&_=${Date.now()}`);
@@ -256,21 +315,40 @@ async function updateDashboard2() {
           return;
       }
 
+      const badge2 = document.getElementById("ui-privacy-badge-2");
+      const btn2 = document.getElementById("override-btn-2");
+
       if (!isDecrypted2) {
           document.getElementById("ui-lat-2").innerText = "*** ENCRYPTED ***";
           document.getElementById("ui-lng-2").innerText = "*** ENCRYPTED ***";
-          document.getElementById("ui-sats-2").innerText = "Hidden";
-          document.getElementById("ui-privacy-badge-2").innerText = "Security: Encrypted";
-          document.getElementById("ui-privacy-badge-2").style.background = "#fff3cd";
-          document.getElementById("ui-privacy-badge-2").style.color = "#856404";
+          document.getElementById("ui-sats-2").innerText = "Protected";
+
+          if (privacyRequested2) {
+              badge2.innerText = `Security: Encrypted (${renterName2 || 'Renter'} Privacy Requested)`;
+              badge2.style.background = "#fee2e2";
+              badge2.style.color = "#991b1b";
+              btn2.innerText = "🔓 Decrypt Location (Emergency Override)";
+              btn2.style.backgroundColor = "#eab308";
+              btn2.style.color = "#000";
+          } else {
+              badge2.innerText = "Security: Masked by Admin";
+              badge2.style.background = "#fff3cd";
+              badge2.style.color = "#856404";
+              btn2.innerText = "🔓 Unmask Location";
+              btn2.style.backgroundColor = "#ffc107";
+              btn2.style.color = "#212529";
+          }
 
           if (markerIsOnMap2) { map.removeLayer(carMarker2); markerIsOnMap2 = false; }
           updateFleetBar();
       } else {
           updateCoordinates2(data);
-          document.getElementById("ui-privacy-badge-2").innerText = "Security: Decrypted";
-          document.getElementById("ui-privacy-badge-2").style.background = "#d4edda";
-          document.getElementById("ui-privacy-badge-2").style.color = "#155724";
+          badge2.innerText = "Security: Decrypted • Live Active";
+          badge2.style.background = "#d4edda";
+          badge2.style.color = "#155724";
+          btn2.innerText = "🔒 Mask Location";
+          btn2.style.backgroundColor = "#475569";
+          btn2.style.color = "white";
       }
 
       document.getElementById("car-trigger-2").style.display = "block";
@@ -293,7 +371,11 @@ function updateCoordinates2(data) {
     }
 }
 
-// Initial run and auto-refresh every 5 seconds
+// Initial privacy check & auto-refresh interval
+checkRenterPrivacyOptOut();
+setInterval(checkRenterPrivacyOptOut, 30000);
+
+// Auto-refresh GPS telemetry every 5 seconds
 updateDashboard();
 setInterval(updateDashboard, 5000);
 
