@@ -279,8 +279,8 @@ body {
     bottom: 84px;
     left: 50%;
     transform: translateX(-50%) translateY(16px);
-    width: min(420px, calc(100vw - 20px));
-    max-height: calc(85vh - 90px);
+    width: min(420px, calc(100% - 20px));
+    max-height: calc(100% - 94px);
     background: #ffffff;
     border-radius: 22px;
     box-shadow: 0 20px 45px rgba(15, 23, 42, 0.35), 0 4px 16px rgba(0, 0, 0, 0.1);
@@ -297,8 +297,8 @@ body {
 
 .bottom-sheet-panel.is-open {
     display: flex !important;
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    opacity: 1 !important;
+    transform: translateX(-50%) translateY(0) !important;
 }
 
 .sheet-header {
@@ -308,6 +308,7 @@ body {
     padding: 14px 16px;
     border-bottom: 1px solid #f1f5f9;
     background: #ffffff;
+    flex-shrink: 0;
 }
 
 .sheet-title-group {
@@ -370,7 +371,8 @@ body {
 .sheet-body {
     padding: 14px 16px;
     overflow-y: auto;
-    max-height: calc(80vh - 170px);
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -723,8 +725,8 @@ body {
         height: 18px;
     }
     .bottom-sheet-panel {
-        bottom: 72px;
-        width: calc(100vw - 16px);
-        max-height: calc(85vh - 80px);
+        bottom: 68px;
+        width: calc(100% - 14px);
+        max-height: calc(100% - 78px);
     }
 }

@@ -284,7 +284,7 @@ let lastDockClickTime = 0;
 
 function onDockClick(tab) {
     const now = Date.now();
-    if (now - lastDockClickTime < 280) return; // Prevent mobile double-fire
+    if (now - lastDockClickTime < 150) return;
     lastDockClickTime = now;
 
     if (tab === 'position') {
@@ -318,6 +318,10 @@ function toggleModal(modalId, dockTab) {
         modal.classList.add('is-open');
         activeModalId = modalId;
         setActiveDockBtn(dockTab);
+
+        if (modalId === 'device-modal') {
+            switchDeviceTab(currentDeviceSubtab || 1);
+        }
     }
 }
 
@@ -331,17 +335,46 @@ function setupDomGuards() {
     const ids = ['bottom-dock', 'device-modal', 'my-modal', 'function-modal', 'fleet-bar'];
     ids.forEach(id => {
         const el = document.getElementById(id);
-        if (el) {
-            if (typeof L !== 'undefined' && L.DomEvent) {
-                L.DomEvent.disableClickPropagation(el);
-                L.DomEvent.disableScrollPropagation(el);
-            }
-            ['touchstart', 'touchend', 'touchmove', 'pointerdown', 'mousedown'].forEach(evt => {
-                el.addEventListener(evt, (e) => {
-                    e.stopPropagation();
-                }, { passive: true });
-            });
+        if (el && typeof L !== 'undefined' && L.DomEvent) {
+            L.DomEvent.disableClickPropagation(el);
+            L.DomEvent.disableScrollPropagation(el);
         }
+    });
+
+    const dockButtons = [
+        { id: 'dock-btn-position', tab: 'position' },
+        { id: 'dock-btn-device', tab: 'device' },
+        { id: 'dock-btn-my', tab: 'my' },
+        { id: 'dock-btn-function', tab: 'function' }
+    ];
+
+    dockButtons.forEach(({ id, tab }) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDockClick(tab);
+            };
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDockClick(tab);
+            }, { passive: false });
+        }
+    });
+
+    document.querySelectorAll('.sheet-close-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeAllModals();
+        };
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeAllModals();
+        }, { passive: false });
     });
 }
 
