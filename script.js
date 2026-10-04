@@ -5,10 +5,37 @@ const blynkServer = "sgp1.blynk.cloud";
 
 const cartoApiKey = "cb1_3p3v_1_c7e75ca303dcbd4b49651900";
 
-const map = L.map('map').setView([14.0893, 121.3138], 15);
-L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${cartoApiKey}`, {
+const map = L.map('map', { zoomControl: false }).setView([14.0893, 121.3138], 15);
+L.control.zoom({ position: 'topright' }).addTo(map);
+
+let currentMapStyle = 'carto-voyager';
+let baseTileLayer = L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${cartoApiKey}`, {
     attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>'
 }).addTo(map);
+
+function toggleMapStyle() {
+    map.removeLayer(baseTileLayer);
+    const label = document.getElementById("map-style-name");
+    if (currentMapStyle === 'carto-voyager') {
+        currentMapStyle = 'osm-streets';
+        baseTileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+        if (label) label.textContent = "Style: OpenStreetMap (Tap for Dark)";
+    } else if (currentMapStyle === 'osm-streets') {
+        currentMapStyle = 'carto-dark';
+        baseTileLayer = L.tileLayer('https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png', {
+            attribution: '&copy; CARTO Dark'
+        }).addTo(map);
+        if (label) label.textContent = "Style: Dark Carto (Tap for Voyager)";
+    } else {
+        currentMapStyle = 'carto-voyager';
+        baseTileLayer = L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?key=${cartoApiKey}`, {
+            attribution: '&copy; CARTO Voyager'
+        }).addTo(map);
+        if (label) label.textContent = "Style: Carto Voyager (Tap for Streets)";
+    }
+}
 
 // --- VEHICLE DIRECTORY (Preloaded + Live Sync) ---
 let FLEET_VEHICLES = [
@@ -51,7 +78,7 @@ function createYiPinIcon(deviceNum, isCar2 = false) {
     const html = `
         <div class="yi-tracker-pin" onclick="onPinClicked('car${deviceNum}')">
             <div class="yi-pin-bubble ${carClass}">
-                <img src="${carImg}" alt="${label}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.onerror=null;this.src='https://cdn-icons-png.flaticon.com/512/744/744465.png';">
+                <img src="${carImg}" alt="${label}" onerror="this.onerror=null;this.src='https://cdn-icons-png.flaticon.com/512/744/744465.png';">
             </div>
             <div class="yi-pin-pointer ${carClass}"></div>
             <div class="yi-pin-badge ${carClass}">${label}</div>
@@ -66,25 +93,13 @@ function createYiPinIcon(deviceNum, isCar2 = false) {
     });
 }
 
-function onPinClicked(carId) {
-    if (carId === 'car1') {
-        const panel = document.getElementById("details-panel");
-        panel.style.display = "block";
-        document.getElementById("details-panel-2").style.display = "none";
-    } else if (carId === 'car2') {
-        const panel = document.getElementById("details-panel-2");
-        panel.style.display = "block";
-        document.getElementById("details-panel").style.display = "none";
-    }
-}
-
 function updateMarkerPopup(marker, deviceNum, lat, lng, sats) {
     const veh = getAssignedVehicle(deviceNum);
     const carImg = veh.img || 'https://cdn-icons-png.flaticon.com/512/744/744465.png';
     const fullName = `${veh.brand} ${veh.model} (${veh.plate})`;
 
     const content = `
-        <div style="font-family:'Segoe UI',sans-serif;min-width:210px;padding:3px;">
+        <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-width:210px;padding:3px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
                 <img src="${carImg}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;border:1px solid #cbd5e1;" onerror="this.onerror=null;this.src='https://cdn-icons-png.flaticon.com/512/744/744465.png';">
                 <div>
@@ -113,11 +128,9 @@ let carMarker2 = L.marker([14.0893, 121.3138], { icon: carIcon2 });
 let markerIsOnMap2 = false;
 
 // --- PRIVACY & DECRYPTION STATES ---
-// Default: DECRYPTED AGAD pag bukas ng Admin!
 let isDecrypted = true; 
 let isDecrypted2 = true;
 
-// Track if renter explicitly requested privacy opt-out
 let privacyRequested1 = false;
 let privacyRequested2 = false;
 let renterName1 = '';
@@ -183,7 +196,6 @@ async function checkRenterPrivacyOptOut() {
         if (res.ok) {
             const data = await res.json();
             
-            // Check Car 1
             const v1 = getAssignedVehicle(1);
             if (data[String(v1.id)]) {
                 privacyRequested1 = true;
@@ -193,7 +205,6 @@ async function checkRenterPrivacyOptOut() {
                 privacyRequested1 = false;
             }
 
-            // Check Car 2
             const v2 = getAssignedVehicle(2);
             if (data[String(v2.id)]) {
                 privacyRequested2 = true;
@@ -210,7 +221,7 @@ async function checkRenterPrivacyOptOut() {
     updateDashboard2();
 }
 
-// Optionally fetch live vehicle list from Autoride API to keep fleet synced
+// Sync fleet list from database
 async function syncFleetListFromAPI() {
     try {
         const res = await fetch('https://autoride-booking-system.vercel.app/api/vehicles');
@@ -225,12 +236,13 @@ async function syncFleetListFromAPI() {
                     img: v.vehicle_image || 'https://cdn-icons-png.flaticon.com/512/744/744465.png'
                 }));
                 initVehicleDropdowns();
+                updateMyStats();
             }
         }
     } catch (e) {}
 }
 
-// --- FLEET BAR & VIEW ALL DEVICES LOGIC ---
+// --- FLEET BAR & RADAR LOGIC ---
 function updateFleetBar() {
     const textEl = document.getElementById("fleet-count-text");
     const count = (markerIsOnMap ? 1 : 0) + (markerIsOnMap2 ? 1 : 0);
@@ -243,6 +255,7 @@ function updateFleetBar() {
             textEl.textContent = `Fleet Radar: ${count} Vehicles Live`;
         }
     }
+    updateMyStats();
 }
 
 function fitAllDevices() {
@@ -255,7 +268,7 @@ function fitAllDevices() {
     }
 
     if (points.length === 0) {
-        alert("No decrypted active devices currently on map. Click a car icon to decrypt / override.");
+        alert("No decrypted active devices currently on map. Click Device tab to decrypt / override.");
     } else if (points.length === 1) {
         map.setView(points[0], 16);
     } else {
@@ -263,36 +276,144 @@ function fitAllDevices() {
     }
 }
 
-// --- UI EVENT LISTENERS ---
-document.getElementById("car-trigger").addEventListener("click", () => {
-    const panel = document.getElementById("details-panel");
-    const willOpen = panel.style.display !== "block";
-    panel.style.display = willOpen ? "block" : "none";
-    if (willOpen) document.getElementById("details-panel-2").style.display = "none";
-});
+// ==========================================================================
+// BOTTOM NAVIGATION DOCK & MODAL SHEETS MANAGEMENT
+// ==========================================================================
+let activeModalId = null;
 
-document.getElementById("locate-btn").addEventListener("click", () => {
-    if (markerIsOnMap) {
-        map.setView(carMarker.getLatLng(), 16);
-    } else {
-        alert("Location is currently encrypted or offline. Click Emergency Override to decrypt.");
+function onDockClick(tab) {
+    if (tab === 'position') {
+        closeAllModals();
+        fitAllDevices();
+        setActiveDockBtn('position');
+    } else if (tab === 'device') {
+        toggleModal('device-modal', 'device');
+    } else if (tab === 'my') {
+        toggleModal('my-modal', 'my');
+        updateMyStats();
+    } else if (tab === 'function') {
+        toggleModal('function-modal', 'function');
     }
-});
+}
 
-document.getElementById("car-trigger-2").addEventListener("click", () => {
-    const panel = document.getElementById("details-panel-2");
-    const willOpen = panel.style.display !== "block";
-    panel.style.display = willOpen ? "block" : "none";
-    if (willOpen) document.getElementById("details-panel").style.display = "none";
-});
+function setActiveDockBtn(tab) {
+    document.querySelectorAll('.dock-btn').forEach(btn => btn.classList.remove('active-dock'));
+    const btn = document.getElementById(`dock-btn-${tab}`);
+    if (btn) btn.classList.add('active-dock');
+}
 
-document.getElementById("locate-btn-2").addEventListener("click", () => {
-    if (markerIsOnMap2) {
-        map.setView(carMarker2.getLatLng(), 16);
+function toggleModal(modalId, dockTab) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    if (activeModalId === modalId) {
+        closeAllModals();
     } else {
-        alert("Location is currently encrypted or offline. Click Emergency Override to decrypt.");
+        closeAllModals();
+        modal.classList.add('is-open');
+        activeModalId = modalId;
+        setActiveDockBtn(dockTab);
     }
-});
+}
+
+function closeAllModals() {
+    document.querySelectorAll('.bottom-sheet-panel').forEach(p => p.classList.remove('is-open'));
+    document.querySelectorAll('.dock-btn').forEach(btn => btn.classList.remove('active-dock'));
+    activeModalId = null;
+}
+
+// Subtab switcher for Device Modal: 1 | 2 | all
+let currentDeviceSubtab = 1;
+function switchDeviceTab(subtab) {
+    currentDeviceSubtab = subtab;
+    const btn1 = document.getElementById('subtab-btn-1');
+    const btn2 = document.getElementById('subtab-btn-2');
+    const btnAll = document.getElementById('subtab-btn-all');
+    
+    if (btn1) btn1.classList.toggle('active', subtab === 1);
+    if (btn2) btn2.classList.toggle('active', subtab === 2);
+    if (btnAll) btnAll.classList.toggle('active', subtab === 'all');
+
+    const card1 = document.getElementById('details-panel');
+    const card2 = document.getElementById('details-panel-2');
+    
+    if (subtab === 1) {
+        if (card1) card1.style.display = 'flex';
+        if (card2) card2.style.display = 'none';
+    } else if (subtab === 2) {
+        if (card1) card1.style.display = 'none';
+        if (card2) card2.style.display = 'flex';
+    } else if (subtab === 'all') {
+        if (card1) card1.style.display = 'flex';
+        if (card2) card2.style.display = 'flex';
+    }
+}
+
+function openDeviceTab(deviceNum) {
+    const modal = document.getElementById('device-modal');
+    if (modal) {
+        closeAllModals();
+        modal.classList.add('is-open');
+        activeModalId = 'device-modal';
+        setActiveDockBtn('device');
+        switchDeviceTab(deviceNum);
+    }
+}
+
+function onPinClicked(carId) {
+    if (carId === 'car1') {
+        openDeviceTab(1);
+    } else if (carId === 'car2') {
+        openDeviceTab(2);
+    }
+}
+
+function updateMyStats() {
+    const activeCount = (markerIsOnMap ? 1 : 0) + (markerIsOnMap2 ? 1 : 0);
+    const actEl = document.getElementById('stat-active-gps');
+    if (actEl) actEl.textContent = activeCount;
+    const fltEl = document.getElementById('stat-fleet-total');
+    if (fltEl) fltEl.textContent = FLEET_VEHICLES.length;
+}
+
+function toggleDecryptAll() {
+    if (!isDecrypted || !isDecrypted2) {
+        isDecrypted = true;
+        isDecrypted2 = true;
+        alert("Emergency Decrypt applied to all live units!");
+    } else {
+        isDecrypted = false;
+        isDecrypted2 = false;
+        alert("All units have been masked by Admin.");
+    }
+    updateDashboard();
+    updateDashboard2();
+}
+
+// Center Map Buttons
+const locBtn1 = document.getElementById("locate-btn");
+if (locBtn1) {
+    locBtn1.addEventListener("click", () => {
+        if (markerIsOnMap) {
+            map.setView(carMarker.getLatLng(), 16);
+            closeAllModals();
+        } else {
+            alert("Car 1 location is currently encrypted or offline. Click Emergency Override to decrypt.");
+        }
+    });
+}
+
+const locBtn2 = document.getElementById("locate-btn-2");
+if (locBtn2) {
+    locBtn2.addEventListener("click", () => {
+        if (markerIsOnMap2) {
+            map.setView(carMarker2.getLatLng(), 16);
+            closeAllModals();
+        } else {
+            alert("Car 2 location is currently encrypted or offline. Click Emergency Override to decrypt.");
+        }
+    });
+}
 
 // --- DECRYPT / EMERGENCY OVERRIDE LOGIC ---
 function toggleOverride() {
@@ -340,10 +461,9 @@ async function updateDashboard() {
       }
       const isOnline = (now - lastActiveTime < 20000);
       
-      // Vanish if offline
       if (!isOnline) {
-          document.getElementById("car-trigger").style.display = "none";
-          document.getElementById("details-panel").style.display = "none";
+          document.getElementById("ui-dot").style.backgroundColor = "#94a3b8";
+          document.getElementById("ui-sats").innerText = "Offline";
           if (markerIsOnMap) { map.removeLayer(carMarker); markerIsOnMap = false; }
           updateFleetBar();
           return;
@@ -354,7 +474,6 @@ async function updateDashboard() {
 
       // PRIVACY/ENCRYPTION GATEKEEPER
       if (!isDecrypted) {
-          // --- ENCRYPTED STATE (e.g. Renter Opted Out or Admin Masked) ---
           document.getElementById("ui-lat").innerText = "*** ENCRYPTED ***";
           document.getElementById("ui-lng").innerText = "*** ENCRYPTED ***";
           document.getElementById("ui-sats").innerText = "Protected";
@@ -378,7 +497,6 @@ async function updateDashboard() {
           if (markerIsOnMap) { map.removeLayer(carMarker); markerIsOnMap = false; }
           updateFleetBar();
       } else {
-          // --- DECRYPTED STATE (Default Live) ---
           updateCoordinates(data);
           badge.innerText = "Security: Decrypted • Live Active";
           badge.style.background = "#d4edda";
@@ -388,8 +506,6 @@ async function updateDashboard() {
           btn.style.color = "white";
       }
 
-      // UI Cleanup
-      document.getElementById("car-trigger").style.display = "block";
       document.getElementById("ui-dot").style.backgroundColor = "#28a745";
     }
   } catch (e) { console.log("Fetch error (Car-001)"); }
@@ -423,8 +539,8 @@ async function updateDashboard2() {
       const isOnline = (now - lastActiveTime2 < 20000);
 
       if (!isOnline) {
-          document.getElementById("car-trigger-2").style.display = "none";
-          document.getElementById("details-panel-2").style.display = "none";
+          document.getElementById("ui-dot-2").style.backgroundColor = "#94a3b8";
+          document.getElementById("ui-sats-2").innerText = "Offline";
           if (markerIsOnMap2) { map.removeLayer(carMarker2); markerIsOnMap2 = false; }
           updateFleetBar();
           return;
@@ -466,7 +582,6 @@ async function updateDashboard2() {
           btn2.style.color = "white";
       }
 
-      document.getElementById("car-trigger-2").style.display = "block";
       document.getElementById("ui-dot-2").style.backgroundColor = "#28a745";
     }
   } catch (e) { console.log("Fetch error (Car-002)"); }
@@ -486,8 +601,9 @@ function updateCoordinates2(data) {
     }
 }
 
-// Initialize dropdowns & sync
+// Initial setup
 initVehicleDropdowns();
+switchDeviceTab(1); // default active subtab is GPS 1
 syncFleetListFromAPI();
 
 // Initial privacy check & auto-refresh interval
