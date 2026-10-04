@@ -10,14 +10,48 @@ L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?k
     attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>'
 }).addTo(map);
 
+// --- VEHICLE DIRECTORY (Preloaded + Live Sync) ---
+let FLEET_VEHICLES = [
+    { id: 12, brand: 'Mitsubishi', model: 'Montero Sport', plate: 'DUY 6527', img: 'https://fydfsgjrlowrrtlmefwq.supabase.co/storage/v1/object/public/uploads/vehicle_12_1782050950.1362324_QX-Front-FS-GT4WD.png' },
+    { id: 17, brand: 'Toyota', model: 'Vios XE AT', plate: 'DAT 1396', img: 'https://fydfsgjrlowrrtlmefwq.supabase.co/storage/v1/object/public/uploads/vehicles/vehicle_17_0_4a816ba9-3b02-435f-b151-a6c6333c374a.jpg' },
+    { id: 27, brand: 'Toyota', model: 'Innova XE AT', plate: 'CCK 1126', img: 'https://fydfsgjrlowrrtlmefwq.supabase.co/storage/v1/object/public/uploads/vehicle_27_1790791244.234815_0_Screenshot%202026-10-01%20020017.png' },
+    { id: 23, brand: 'Honda', model: 'BR-V', plate: 'NID 2724', img: 'https://fydfsgjrlowrrtlmefwq.supabase.co/storage/v1/object/public/uploads/vehicle_23_1790788841.666478_0_Gemini_Generated_Image_kmn55hkmn55hkmn5.jpg' },
+    { id: 22, brand: 'Honda', model: 'City', plate: 'DCF 2987', img: 'https://fydfsgjrlowrrtlmefwq.supabase.co/storage/v1/object/public/uploads/vehicles/vehicle_22_1777724019_0_9c3cba48-03e9-4ed2-bcd8-0334dcb870ed.jpg' },
+    { id: 30, brand: 'Toyota', model: 'Fortuner V AT', plate: 'DBH 8812', img: 'https://fydfsgjrlowrrtlmefwq.supabase.co/storage/v1/object/public/uploads/vehicle_30_1790790938.9109933_0_Screenshot%202026-10-01%20015433.png' },
+    { id: 34, brand: 'Toyota', model: 'Hiace', plate: 'NCW 3918', img: 'https://fydfsgjrlowrrtlmefwq.supabase.co/storage/v1/object/public/uploads/vehicle_1790789402.9839945_Screenshot%202026-10-01%20012156.png' },
+    { id: 18, brand: 'Toyota', model: 'Vios XLE AT', plate: 'DBJ 9483', img: 'https://fydfsgjrlowrrtlmefwq.supabase.co/storage/v1/object/public/uploads/vehicle_18_1790790453.7647066_0_Screenshot%202026-10-01%20014657.png' },
+    { id: 24, brand: 'Toyota', model: 'Avanza G', plate: 'DAO 4897', img: 'https://fydfsgjrlowrrtlmefwq.supabase.co/storage/v1/object/public/uploads/vehicles/vehicle_24_0_782df71a-77ea-4f2d-82ba-c4936aead469.jpg' },
+    { id: 26, brand: 'Toyota', model: 'Innova XE AT', plate: 'NHN 5388', img: 'https://fydfsgjrlowrrtlmefwq.supabase.co/storage/v1/object/public/uploads/vehicles/vehicle_26_0_a90bc58d-e430-4f06-99e6-9d67d926c972.jpg' },
+    { id: 21, brand: 'Mitsubishi', model: 'Mirage G4', plate: 'DAN 2179', img: 'https://fydfsgjrlowrrtlmefwq.supabase.co/storage/v1/object/public/uploads/vehicles/vehicle_21_0_79161984-4030-4b1c-8d7a-87dd91508948.jpg' },
+    { id: 14, brand: 'Toyota', model: 'Vios J MT', plate: 'NCX 4117', img: 'https://fydfsgjrlowrrtlmefwq.supabase.co/storage/v1/object/public/uploads/vehicle_14_1790788559.6570857_0_Screenshot%202026-10-01%20005336.png' }
+];
+
+// Current assigned vehicle IDs (persisted via localStorage)
+let assignedVehicleId1 = parseInt(localStorage.getItem('autoride_assigned_gps_1'), 10) || 12; // Default: Montero Sport
+let assignedVehicleId2 = parseInt(localStorage.getItem('autoride_assigned_gps_2'), 10) || 17; // Default: Vios XE
+
+function getAssignedVehicle(deviceNum) {
+    const targetId = deviceNum === 1 ? assignedVehicleId1 : assignedVehicleId2;
+    return FLEET_VEHICLES.find(v => v.id === targetId) || FLEET_VEHICLES[deviceNum === 1 ? 0 : 1];
+}
+
 // --- YI TRACKER STYLE CUSTOM PINS ---
-function createYiPinIcon(carId, label, isCar2 = false) {
+function createYiPinIcon(deviceNum, isCar2 = false) {
+    const veh = getAssignedVehicle(deviceNum);
     const carClass = isCar2 ? 'car-2' : '';
-    const imgFilter = isCar2 ? 'style="filter:hue-rotate(210deg) saturate(1.3);"' : '';
+    const carImg = veh.img || 'https://cdn-icons-png.flaticon.com/512/744/744465.png';
+    
+    // Badge format: "01·MONTERO_DUY 6527"
+    const prefix = deviceNum < 10 ? '0' + deviceNum : String(deviceNum);
+    const rawModel = (veh.model || veh.brand || 'CAR').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const shortModel = rawModel.length > 7 ? rawModel.substring(0, 7) : rawModel;
+    const cleanPlate = (veh.plate || 'NO-PLATE').trim().toUpperCase();
+    const label = `${prefix}·${shortModel}_${cleanPlate}`;
+
     const html = `
-        <div class="yi-tracker-pin" onclick="onPinClicked('${carId}')">
+        <div class="yi-tracker-pin" onclick="onPinClicked('car${deviceNum}')">
             <div class="yi-pin-bubble ${carClass}">
-                <img src="https://cdn-icons-png.flaticon.com/512/744/744465.png" alt="${label}" ${imgFilter}>
+                <img src="${carImg}" alt="${label}" onerror="this.onerror=null;this.src='https://cdn-icons-png.flaticon.com/512/744/744465.png';">
             </div>
             <div class="yi-pin-pointer ${carClass}"></div>
             <div class="yi-pin-badge ${carClass}">${label}</div>
@@ -26,8 +60,8 @@ function createYiPinIcon(carId, label, isCar2 = false) {
     return L.divIcon({
         html: html,
         className: 'yi-custom-div-icon',
-        iconSize: [90, 75],
-        iconAnchor: [45, 75],
+        iconSize: [110, 75],
+        iconAnchor: [55, 75],
         popupAnchor: [0, -78]
     });
 }
@@ -44,15 +78,24 @@ function onPinClicked(carId) {
     }
 }
 
-function updateMarkerPopup(marker, carName, lat, lng, sats) {
+function updateMarkerPopup(marker, deviceNum, lat, lng, sats) {
+    const veh = getAssignedVehicle(deviceNum);
+    const carImg = veh.img || 'https://cdn-icons-png.flaticon.com/512/744/744465.png';
+    const fullName = `${veh.brand} ${veh.model} (${veh.plate})`;
+
     const content = `
-        <div style="font-family:'Segoe UI',sans-serif;min-width:180px;padding:3px;">
-            <div style="font-weight:800;font-size:0.95rem;color:#0f172a;margin-bottom:5px;display:flex;align-items:center;gap:6px;">
-                <span style="width:8px;height:8px;border-radius:50%;background:#00B14F;display:inline-block;"></span>
-                ${carName}
+        <div style="font-family:'Segoe UI',sans-serif;min-width:210px;padding:3px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                <img src="${carImg}" style="width:40px;height:40px;border-radius:8px;object-fit:cover;border:1px solid #cbd5e1;" onerror="this.onerror=null;this.src='https://cdn-icons-png.flaticon.com/512/744/744465.png';">
+                <div>
+                    <div style="font-weight:800;font-size:0.88rem;color:#0f172a;line-height:1.2;">${fullName}</div>
+                    <div style="font-size:0.72rem;color:#00B14F;font-weight:700;">GPS Unit ${deviceNum} Active</div>
+                </div>
             </div>
-            <div style="font-size:0.75rem;color:#64748b;margin-bottom:3px;">Coordinates: <b style="color:#0f172a;font-family:monospace;">${lat.toFixed(5)}, ${lng.toFixed(5)}</b></div>
-            <div style="font-size:0.72rem;color:#64748b;margin-bottom:8px;">Satellites: <b style="color:#007bff;">${sats}</b></div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px 8px;margin-bottom:8px;">
+                <div style="font-size:0.72rem;color:#64748b;">Coordinates: <b style="color:#0f172a;font-family:monospace;">${lat.toFixed(5)}, ${lng.toFixed(5)}</b></div>
+                <div style="font-size:0.70rem;color:#64748b;margin-top:2px;">Satellites: <b style="color:#007bff;">${sats}</b></div>
+            </div>
             <button onclick="window.open('https://www.google.com/maps?q=${lat},${lng}','_blank')" style="width:100%;background:#007bff;color:white;border:none;border-radius:6px;padding:6px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">
                 Google Maps Navigate
             </button>
@@ -61,11 +104,11 @@ function updateMarkerPopup(marker, carName, lat, lng, sats) {
     marker.bindPopup(content);
 }
 
-const carIcon = createYiPinIcon('car1', '01·CAR-001', false);
+let carIcon = createYiPinIcon(1, false);
 let carMarker = L.marker([14.0893, 121.3138], { icon: carIcon });
 let markerIsOnMap = false;
 
-const carIcon2 = createYiPinIcon('car2', '02·CAR-002', true);
+let carIcon2 = createYiPinIcon(2, true);
 let carMarker2 = L.marker([14.0893, 121.3138], { icon: carIcon2 });
 let markerIsOnMap2 = false;
 
@@ -83,29 +126,81 @@ let renterName2 = '';
 let lastActiveTime = Date.now();
 let lastActiveTime2 = Date.now();
 
+// --- POPULATE VEHICLE SELECT DROPDOWNS ---
+function initVehicleDropdowns() {
+    const sel1 = document.getElementById('vehicle-select-1');
+    const sel2 = document.getElementById('vehicle-select-2');
+
+    const optionsHtml = FLEET_VEHICLES.map(v => `
+        <option value="${v.id}">${v.brand} ${v.model} (${v.plate})</option>
+    `).join('');
+
+    if (sel1) {
+        sel1.innerHTML = optionsHtml;
+        sel1.value = assignedVehicleId1;
+    }
+    if (sel2) {
+        sel2.innerHTML = optionsHtml;
+        sel2.value = assignedVehicleId2;
+    }
+
+    updatePanelTitles();
+}
+
+function updatePanelTitles() {
+    const v1 = getAssignedVehicle(1);
+    const v2 = getAssignedVehicle(2);
+
+    const title1 = document.getElementById('ui-title-1');
+    if (title1) title1.textContent = `GPS 1: ${v1.brand} ${v1.model} (${v1.plate})`;
+
+    const title2 = document.getElementById('ui-title-2');
+    if (title2) title2.textContent = `GPS 2: ${v2.brand} ${v2.model} (${v2.plate})`;
+}
+
+function onVehicleSelectChange(deviceNum, newVehicleId) {
+    const vid = parseInt(newVehicleId, 10);
+    if (deviceNum === 1) {
+        assignedVehicleId1 = vid;
+        localStorage.setItem('autoride_assigned_gps_1', vid);
+        carIcon = createYiPinIcon(1, false);
+        carMarker.setIcon(carIcon);
+    } else {
+        assignedVehicleId2 = vid;
+        localStorage.setItem('autoride_assigned_gps_2', vid);
+        carIcon2 = createYiPinIcon(2, true);
+        carMarker2.setIcon(carIcon2);
+    }
+
+    updatePanelTitles();
+    checkRenterPrivacyOptOut();
+}
+
 // --- CHECK RENTER PRIVACY OPT-OUT FROM AUTORIDE BACKEND ---
 async function checkRenterPrivacyOptOut() {
     try {
         const res = await fetch('https://autoride-booking-system.vercel.app/api/gps-privacy-status');
         if (res.ok) {
             const data = await res.json();
-            // Data contains vehicles whose current renter opted out of GPS tracking
-            for (const [vId, info] of Object.entries(data || {})) {
-                const combined = `${info.brand || ''} ${info.model || ''} ${info.plate_number || ''} ${info.gps_device_name || ''}`.toUpperCase();
-                
-                // If it matches Montero Sport, Vehicle #12, or Car-001
-                if (combined.includes('MONTERO') || combined.includes('DUY 6527') || combined.includes('CAR-001') || vId === '12') {
-                    privacyRequested1 = true;
-                    renterName1 = info.customer_name || 'Renter';
-                    isDecrypted = false; // Masked upon opening for this vehicle only!
-                }
+            
+            // Check Car 1
+            const v1 = getAssignedVehicle(1);
+            if (data[String(v1.id)]) {
+                privacyRequested1 = true;
+                renterName1 = data[String(v1.id)].customer_name || 'Renter';
+                isDecrypted = false;
+            } else {
+                privacyRequested1 = false;
+            }
 
-                // If it matches Car-002
-                if (combined.includes('CAR-002') || combined.includes('VIOS') || combined.includes('UNIT 2')) {
-                    privacyRequested2 = true;
-                    renterName2 = info.customer_name || 'Renter';
-                    isDecrypted2 = false; // Masked upon opening for this vehicle only!
-                }
+            // Check Car 2
+            const v2 = getAssignedVehicle(2);
+            if (data[String(v2.id)]) {
+                privacyRequested2 = true;
+                renterName2 = data[String(v2.id)].customer_name || 'Renter';
+                isDecrypted2 = false;
+            } else {
+                privacyRequested2 = false;
             }
         }
     } catch (e) {
@@ -113,6 +208,26 @@ async function checkRenterPrivacyOptOut() {
     }
     updateDashboard();
     updateDashboard2();
+}
+
+// Optionally fetch live vehicle list from Autoride API to keep fleet synced
+async function syncFleetListFromAPI() {
+    try {
+        const res = await fetch('https://autoride-booking-system.vercel.app/api/vehicles');
+        if (res.ok) {
+            const list = await res.json();
+            if (Array.isArray(list) && list.length > 0) {
+                FLEET_VEHICLES = list.map(v => ({
+                    id: v.id,
+                    brand: v.brand || 'Vehicle',
+                    model: v.model || `#${v.id}`,
+                    plate: v.plate_number || 'No Plate',
+                    img: v.vehicle_image || 'https://cdn-icons-png.flaticon.com/512/744/744465.png'
+                }));
+                initVehicleDropdowns();
+            }
+        }
+    } catch (e) {}
 }
 
 // --- FLEET BAR & VIEW ALL DEVICES LOGIC ---
@@ -288,7 +403,7 @@ function updateCoordinates(data) {
     const lng = parseFloat(data.v2);
     if (!isNaN(lat) && !isNaN(lng)) {
         carMarker.setLatLng([lat, lng]);
-        updateMarkerPopup(carMarker, 'Car-001 (Montero Sport)', lat, lng, data.v3 || '0');
+        updateMarkerPopup(carMarker, 1, lat, lng, data.v3 || '0');
         if (!markerIsOnMap) { carMarker.addTo(map); markerIsOnMap = true; }
         updateFleetBar();
     }
@@ -365,11 +480,15 @@ function updateCoordinates2(data) {
     const lng = parseFloat(data.v6);
     if (!isNaN(lat) && !isNaN(lng)) {
         carMarker2.setLatLng([lat, lng]);
-        updateMarkerPopup(carMarker2, 'Car-002 (02·CAR-002)', lat, lng, data.v7 || '0');
+        updateMarkerPopup(carMarker2, 2, lat, lng, data.v7 || '0');
         if (!markerIsOnMap2) { carMarker2.addTo(map); markerIsOnMap2 = true; }
         updateFleetBar();
     }
 }
+
+// Initialize dropdowns & sync
+initVehicleDropdowns();
+syncFleetListFromAPI();
 
 // Initial privacy check & auto-refresh interval
 checkRenterPrivacyOptOut();
