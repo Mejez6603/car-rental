@@ -10,19 +10,63 @@ L.tileLayer(`https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png?k
     attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>'
 }).addTo(map);
 
-const carIcon = L.icon({
-    iconUrl: 'https://cdn-icons-png.flaticon.com/512/744/744465.png',
-    iconSize: [40, 40], iconAnchor: [20, 20]
-});
-let carMarker = L.marker([14.2600, 121.3958], {icon: carIcon});
+// --- YI TRACKER STYLE CUSTOM PINS ---
+function createYiPinIcon(carId, label, isCar2 = false) {
+    const carClass = isCar2 ? 'car-2' : '';
+    const imgFilter = isCar2 ? 'style="filter:hue-rotate(210deg) saturate(1.3);"' : '';
+    const html = `
+        <div class="yi-tracker-pin" onclick="onPinClicked('${carId}')">
+            <div class="yi-pin-bubble ${carClass}">
+                <img src="https://cdn-icons-png.flaticon.com/512/744/744465.png" alt="${label}" ${imgFilter}>
+            </div>
+            <div class="yi-pin-pointer ${carClass}"></div>
+            <div class="yi-pin-badge ${carClass}">${label}</div>
+        </div>
+    `;
+    return L.divIcon({
+        html: html,
+        className: 'yi-custom-div-icon',
+        iconSize: [90, 75],
+        iconAnchor: [45, 75],
+        popupAnchor: [0, -78]
+    });
+}
+
+function onPinClicked(carId) {
+    if (carId === 'car1') {
+        const panel = document.getElementById("details-panel");
+        panel.style.display = "block";
+        document.getElementById("details-panel-2").style.display = "none";
+    } else if (carId === 'car2') {
+        const panel = document.getElementById("details-panel-2");
+        panel.style.display = "block";
+        document.getElementById("details-panel").style.display = "none";
+    }
+}
+
+function updateMarkerPopup(marker, carName, lat, lng, sats) {
+    const content = `
+        <div style="font-family:'Segoe UI',sans-serif;min-width:180px;padding:3px;">
+            <div style="font-weight:800;font-size:0.95rem;color:#0f172a;margin-bottom:5px;display:flex;align-items:center;gap:6px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:#00B14F;display:inline-block;"></span>
+                ${carName}
+            </div>
+            <div style="font-size:0.75rem;color:#64748b;margin-bottom:3px;">Coordinates: <b style="color:#0f172a;font-family:monospace;">${lat.toFixed(5)}, ${lng.toFixed(5)}</b></div>
+            <div style="font-size:0.72rem;color:#64748b;margin-bottom:8px;">Satellites: <b style="color:#007bff;">${sats}</b></div>
+            <button onclick="window.open('https://www.google.com/maps?q=${lat},${lng}','_blank')" style="width:100%;background:#007bff;color:white;border:none;border-radius:6px;padding:6px 10px;font-size:0.75rem;font-weight:700;cursor:pointer;">
+                Google Maps Navigate
+            </button>
+        </div>
+    `;
+    marker.bindPopup(content);
+}
+
+const carIcon = createYiPinIcon('car1', '01·CAR-001', false);
+let carMarker = L.marker([14.2600, 121.3958], { icon: carIcon });
 let markerIsOnMap = false;
 
-const carIcon2 = L.icon({
-    iconUrl: 'https://cdn-icons-png.flaticon.com/512/744/744465.png',
-    iconSize: [40, 40], iconAnchor: [20, 20],
-    className: 'car-icon-2'
-});
-let carMarker2 = L.marker([14.2600, 121.3958], {icon: carIcon2});
+const carIcon2 = createYiPinIcon('car2', '02·CAR-002', true);
+let carMarker2 = L.marker([14.2600, 121.3958], { icon: carIcon2 });
 let markerIsOnMap2 = false;
 
 // State Variables
@@ -31,6 +75,39 @@ let isDecrypted = false; // Default: Encrypted/Locked
 
 let lastActiveTime2 = Date.now();
 let isDecrypted2 = false; // Default: Encrypted/Locked
+
+// --- FLEET BAR & VIEW ALL DEVICES LOGIC ---
+function updateFleetBar() {
+    const textEl = document.getElementById("fleet-count-text");
+    const count = (markerIsOnMap ? 1 : 0) + (markerIsOnMap2 ? 1 : 0);
+    if (textEl) {
+        if (count === 0) {
+            textEl.textContent = "Fleet Radar: No Live Pins";
+        } else if (count === 1) {
+            textEl.textContent = "Fleet Radar: 1 Vehicle Live";
+        } else {
+            textEl.textContent = `Fleet Radar: ${count} Vehicles Live`;
+        }
+    }
+}
+
+function fitAllDevices() {
+    const points = [];
+    if (markerIsOnMap && carMarker) {
+        points.push(carMarker.getLatLng());
+    }
+    if (markerIsOnMap2 && carMarker2) {
+        points.push(carMarker2.getLatLng());
+    }
+
+    if (points.length === 0) {
+        alert("No decrypted active devices currently on map. Click the car icon to decrypt location first.");
+    } else if (points.length === 1) {
+        map.setView(points[0], 16);
+    } else {
+        map.fitBounds(points, { padding: [80, 80], maxZoom: 16 });
+    }
+}
 
 // --- UI EVENT LISTENERS ---
 document.getElementById("car-trigger").addEventListener("click", () => {
@@ -104,9 +181,6 @@ async function updateDashboard() {
     const now = Date.now();
     
     if (data) {
-      // 1. Connection Status (20-second timeout)
-      // FIX: Update lastActiveTime on every poll (not just when v4 changes),
-      // so the panel and car icon don't vanish when v4 stays the same value.
       if (data.v4 !== undefined) {
         lastActiveTime = now;
       }
@@ -117,10 +191,11 @@ async function updateDashboard() {
           document.getElementById("car-trigger").style.display = "none";
           document.getElementById("details-panel").style.display = "none";
           if (markerIsOnMap) { map.removeLayer(carMarker); markerIsOnMap = false; }
+          updateFleetBar();
           return;
       }
 
-      // 2. PRIVACY/ENCRYPTION GATEKEEPER
+      // PRIVACY/ENCRYPTION GATEKEEPER
       if (!isDecrypted) {
           // --- ENCRYPTED STATE ---
           document.getElementById("ui-lat").innerText = "*** ENCRYPTED ***";
@@ -131,6 +206,7 @@ async function updateDashboard() {
           document.getElementById("ui-privacy-badge").style.color = "#856404";
           
           if (markerIsOnMap) { map.removeLayer(carMarker); markerIsOnMap = false; }
+          updateFleetBar();
       } else {
           // --- DECRYPTED STATE ---
           updateCoordinates(data);
@@ -154,7 +230,9 @@ function updateCoordinates(data) {
     const lng = parseFloat(data.v2);
     if (!isNaN(lat) && !isNaN(lng)) {
         carMarker.setLatLng([lat, lng]);
+        updateMarkerPopup(carMarker, 'Car-001 (01·CAR-001)', lat, lng, data.v3 || '0');
         if (!markerIsOnMap) { carMarker.addTo(map); markerIsOnMap = true; }
+        updateFleetBar();
     }
 }
 
@@ -174,6 +252,7 @@ async function updateDashboard2() {
           document.getElementById("car-trigger-2").style.display = "none";
           document.getElementById("details-panel-2").style.display = "none";
           if (markerIsOnMap2) { map.removeLayer(carMarker2); markerIsOnMap2 = false; }
+          updateFleetBar();
           return;
       }
 
@@ -186,6 +265,7 @@ async function updateDashboard2() {
           document.getElementById("ui-privacy-badge-2").style.color = "#856404";
 
           if (markerIsOnMap2) { map.removeLayer(carMarker2); markerIsOnMap2 = false; }
+          updateFleetBar();
       } else {
           updateCoordinates2(data);
           document.getElementById("ui-privacy-badge-2").innerText = "Security: Decrypted";
@@ -207,7 +287,9 @@ function updateCoordinates2(data) {
     const lng = parseFloat(data.v6);
     if (!isNaN(lat) && !isNaN(lng)) {
         carMarker2.setLatLng([lat, lng]);
+        updateMarkerPopup(carMarker2, 'Car-002 (02·CAR-002)', lat, lng, data.v7 || '0');
         if (!markerIsOnMap2) { carMarker2.addTo(map); markerIsOnMap2 = true; }
+        updateFleetBar();
     }
 }
 
