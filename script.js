@@ -41,17 +41,17 @@ function createYiPinIcon(deviceNum, isCar2 = false) {
     const carClass = isCar2 ? 'car-2' : '';
     const carImg = veh.img || 'https://cdn-icons-png.flaticon.com/512/744/744465.png';
     
-    // Badge format: "01·MONTERO_DUY 6527"
+    // Badge format: "01·VIOS_DAT 1396"
     const prefix = deviceNum < 10 ? '0' + deviceNum : String(deviceNum);
-    const rawModel = (veh.model || veh.brand || 'CAR').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    const shortModel = rawModel.length > 7 ? rawModel.substring(0, 7) : rawModel;
+    const modelParts = (veh.model || veh.brand || 'CAR').trim().split(/[\s_-]+/);
+    const mainModel = (modelParts[0] || 'CAR').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     const cleanPlate = (veh.plate || 'NO-PLATE').trim().toUpperCase();
-    const label = `${prefix}·${shortModel}_${cleanPlate}`;
+    const label = `${prefix}·${mainModel}_${cleanPlate}`;
 
     const html = `
         <div class="yi-tracker-pin" onclick="onPinClicked('car${deviceNum}')">
             <div class="yi-pin-bubble ${carClass}">
-                <img src="${carImg}" alt="${label}" onerror="this.onerror=null;this.src='https://cdn-icons-png.flaticon.com/512/744/744465.png';">
+                <img src="${carImg}" alt="${label}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" onerror="this.onerror=null;this.src='https://cdn-icons-png.flaticon.com/512/744/744465.png';">
             </div>
             <div class="yi-pin-pointer ${carClass}"></div>
             <div class="yi-pin-badge ${carClass}">${label}</div>
