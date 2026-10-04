@@ -280,8 +280,13 @@ function fitAllDevices() {
 // BOTTOM NAVIGATION DOCK & MODAL SHEETS MANAGEMENT
 // ==========================================================================
 let activeModalId = null;
+let lastDockClickTime = 0;
 
 function onDockClick(tab) {
+    const now = Date.now();
+    if (now - lastDockClickTime < 280) return; // Prevent mobile double-fire
+    lastDockClickTime = now;
+
     if (tab === 'position') {
         closeAllModals();
         fitAllDevices();
@@ -320,6 +325,24 @@ function closeAllModals() {
     document.querySelectorAll('.bottom-sheet-panel').forEach(p => p.classList.remove('is-open'));
     document.querySelectorAll('.dock-btn').forEach(btn => btn.classList.remove('active-dock'));
     activeModalId = null;
+}
+
+function setupDomGuards() {
+    const ids = ['bottom-dock', 'device-modal', 'my-modal', 'function-modal', 'fleet-bar'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (typeof L !== 'undefined' && L.DomEvent) {
+                L.DomEvent.disableClickPropagation(el);
+                L.DomEvent.disableScrollPropagation(el);
+            }
+            ['touchstart', 'touchend', 'touchmove', 'pointerdown', 'mousedown'].forEach(evt => {
+                el.addEventListener(evt, (e) => {
+                    e.stopPropagation();
+                }, { passive: true });
+            });
+        }
+    });
 }
 
 // Subtab switcher for Device Modal: 1 | 2 | all
@@ -603,6 +626,7 @@ function updateCoordinates2(data) {
 
 // Initial setup
 initVehicleDropdowns();
+setupDomGuards();
 switchDeviceTab(1); // default active subtab is GPS 1
 syncFleetListFromAPI();
 

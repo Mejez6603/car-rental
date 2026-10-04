@@ -177,33 +177,30 @@ body {
 /* ==========================================================================
    BOTTOM DOCK (Exact 1:1 Match to Mobile GPS App UI)
    ========================================================================== */
-#bottom-dock-container {
-    position: fixed;
-    bottom: 18px;
-    left: 0;
-    right: 0;
-    display: flex;
-    justify-content: center;
-    z-index: 1500;
-    pointer-events: none;
-}
-
 #bottom-dock {
-    pointer-events: auto;
+    position: fixed;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000 !important;
     background: #ffffff;
-    padding: 7px 10px;
-    border-radius: 26px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.24), 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 6px 8px;
+    border-radius: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.12);
     display: flex;
     gap: 8px;
     align-items: center;
-    border: 1px solid rgba(226, 232, 240, 0.9);
+    border: 1.5px solid rgba(226, 232, 240, 0.9);
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .dock-btn {
-    width: 66px;
-    height: 60px;
-    border-radius: 18px;
+    width: 62px;
+    height: 56px;
+    border-radius: 17px;
     border: none;
     outline: none;
     cursor: pointer;
@@ -211,21 +208,22 @@ body {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 2px;
     color: #ffffff;
-    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 0.15s ease, filter 0.15s ease;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16);
-    user-select: none;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .dock-btn:hover {
-    transform: translateY(-3px);
+    transform: translateY(-2px);
     filter: brightness(1.08);
-    box-shadow: 0 7px 14px rgba(0, 0, 0, 0.24);
 }
 
 .dock-btn:active {
-    transform: scale(0.94);
+    transform: scale(0.92);
 }
 
 /* Button Colors */
@@ -246,21 +244,23 @@ body {
 }
 
 .dock-btn.active-dock {
-    box-shadow: 0 0 0 3px #ffffff, 0 6px 16px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 3px #ffffff, 0 6px 16px rgba(0, 0, 0, 0.35);
     transform: translateY(-2px);
 }
 
 .dock-icon-wrapper {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: none;
 }
 
 .dock-icon-wrapper svg {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
+    pointer-events: none;
 }
 
 .dock-label {
@@ -268,6 +268,7 @@ body {
     font-weight: 700;
     line-height: 1;
     letter-spacing: 0.2px;
+    pointer-events: none;
 }
 
 /* ==========================================================================
@@ -275,25 +276,27 @@ body {
    ========================================================================== */
 .bottom-sheet-panel {
     position: fixed;
-    bottom: 92px;
+    bottom: 84px;
     left: 50%;
     transform: translateX(-50%) translateY(16px);
-    width: min(440px, calc(100vw - 24px));
-    max-height: calc(85vh - 100px);
+    width: min(420px, calc(100vw - 20px));
+    max-height: calc(85vh - 90px);
     background: #ffffff;
     border-radius: 22px;
-    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.3), 0 4px 16px rgba(0, 0, 0, 0.08);
-    z-index: 1600;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.35), 0 4px 16px rgba(0, 0, 0, 0.1);
+    z-index: 10001 !important;
     display: none;
     flex-direction: column;
     overflow: hidden;
     border: 1px solid #e2e8f0;
     opacity: 0;
+    pointer-events: auto !important;
+    touch-action: pan-y !important;
     transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .bottom-sheet-panel.is-open {
-    display: flex;
+    display: flex !important;
     opacity: 1;
     transform: translateX(-50%) translateY(0);
 }
@@ -699,21 +702,29 @@ body {
 /* ==========================================================================
    RESPONSIVE ADJUSTMENTS
    ========================================================================== */
-@media (max-width: 380px) {
+@media (max-width: 480px) {
     #bottom-dock {
+        bottom: 12px;
         gap: 6px;
-        padding: 6px 8px;
+        padding: 5px 6px;
+        border-radius: 20px;
     }
     .dock-btn {
-        width: 58px;
-        height: 54px;
-        border-radius: 15px;
+        width: 56px;
+        height: 50px;
+        border-radius: 14px;
+        gap: 1px;
     }
     .dock-label {
-        font-size: 10px;
+        font-size: 9.5px;
     }
     .dock-icon-wrapper svg {
-        width: 19px;
-        height: 19px;
+        width: 18px;
+        height: 18px;
+    }
+    .bottom-sheet-panel {
+        bottom: 72px;
+        width: calc(100vw - 16px);
+        max-height: calc(85vh - 80px);
     }
 }

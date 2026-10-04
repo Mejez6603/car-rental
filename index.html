@@ -213,55 +213,53 @@
 <!-- ============================================== -->
 <!-- BOTTOM NAVIGATION DOCK (Yi Tracker UI Style)    -->
 <!-- ============================================== -->
-<div id="bottom-dock-container">
-    <div id="bottom-dock">
-        <!-- 1. Position Button (Green) -->
-        <button class="dock-btn btn-position active" id="dock-btn-position" onclick="onDockClick('position')" title="View Live Positions">
-            <div class="dock-icon-wrapper">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/>
-                    <circle cx="12" cy="10" r="3"/>
-                </svg>
-            </div>
-            <span class="dock-label">Position</span>
-        </button>
+<div id="bottom-dock">
+    <!-- 1. Position Button (Green) -->
+    <button type="button" class="dock-btn btn-position active" id="dock-btn-position" onclick="onDockClick('position')" title="View Live Positions">
+        <div class="dock-icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z"/>
+                <circle cx="12" cy="10" r="3"/>
+            </svg>
+        </div>
+        <span class="dock-label">Position</span>
+    </button>
 
-        <!-- 2. Device Button (Blue) -->
-        <button class="dock-btn btn-device" id="dock-btn-device" onclick="onDockClick('device')" title="Manage Vehicles & Devices">
-            <div class="dock-icon-wrapper">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                    <line x1="12" y1="22.08" x2="12" y2="12"/>
-                </svg>
-            </div>
-            <span class="dock-label">Device</span>
-        </button>
+    <!-- 2. Device Button (Blue) -->
+    <button type="button" class="dock-btn btn-device" id="dock-btn-device" onclick="onDockClick('device')" title="Manage Vehicles & Devices">
+        <div class="dock-icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+        </div>
+        <span class="dock-label">Device</span>
+    </button>
 
-        <!-- 3. My Button (Orange) -->
-        <button class="dock-btn btn-my" id="dock-btn-my" onclick="onDockClick('my')" title="Admin Fleet Info">
-            <div class="dock-icon-wrapper">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                </svg>
-            </div>
-            <span class="dock-label">My</span>
-        </button>
+    <!-- 3. My Button (Orange) -->
+    <button type="button" class="dock-btn btn-my" id="dock-btn-my" onclick="onDockClick('my')" title="Admin Fleet Info">
+        <div class="dock-icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+            </svg>
+        </div>
+        <span class="dock-label">My</span>
+    </button>
 
-        <!-- 4. Function Button (Grey) -->
-        <button class="dock-btn btn-function" id="dock-btn-function" onclick="onDockClick('function')" title="Fleet Tools & Functions">
-            <div class="dock-icon-wrapper">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
-                    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
-                    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
-                    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
-                </svg>
-            </div>
-            <span class="dock-label">Function</span>
-        </button>
-    </div>
+    <!-- 4. Function Button (Grey) -->
+    <button type="button" class="dock-btn btn-function" id="dock-btn-function" onclick="onDockClick('function')" title="Fleet Tools & Functions">
+        <div class="dock-icon-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+            </svg>
+        </div>
+        <span class="dock-label">Function</span>
+    </button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
