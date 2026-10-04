@@ -706,7 +706,7 @@ body {
    ========================================================================== */
 @media (max-width: 480px) {
     #bottom-dock {
-        bottom: 12px;
+        bottom: 16px;
         gap: 6px;
         padding: 5px 6px;
         border-radius: 20px;
