@@ -123,45 +123,6 @@
     </div>
 </div>
 
-<!-- 2. MY PANEL (Profile & Fleet Summary) -->
-<div id="my-modal" class="bottom-sheet-panel">
-    <div class="sheet-header">
-        <div class="sheet-title-group">
-            <div class="sheet-icon-circle orange">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </div>
-            <div>
-                <h3 class="sheet-title">Fleet System Admin</h3>
-                <span class="sheet-subtitle">Autoride Car Rental Laguna</span>
-            </div>
-        </div>
-        <button class="sheet-close-btn" onclick="closeAllModals()" aria-label="Close">✕</button>
-    </div>
-    <div class="sheet-body">
-        <div class="profile-card">
-            <div class="profile-avatar">🚘</div>
-            <div class="profile-info">
-                <h4>Autoride Laguna Hub</h4>
-                <p>Telemetry Node: <code>sgp1.blynk.cloud</code></p>
-                <span class="status-pill online">● IoT System Connected</span>
-            </div>
-        </div>
-        <div class="stats-row">
-            <div class="stat-card">
-                <span class="stat-val" id="stat-active-gps">2</span>
-                <span class="stat-lbl">Active GPS Units</span>
-            </div>
-            <div class="stat-card">
-                <span class="stat-val" id="stat-fleet-total">12</span>
-                <span class="stat-lbl">Fleet Vehicles</span>
-            </div>
-        </div>
-        <a href="https://autoride-booking-system.vercel.app/admin/" target="_blank" class="admin-link-btn">
-            🚀 Open Autoride Admin Booking System ↗
-        </a>
-    </div>
-</div>
-
 <!-- 3. FUNCTION PANEL (Fleet Utilities) -->
 <div id="function-modal" class="bottom-sheet-panel">
     <div class="sheet-header">
@@ -235,17 +196,6 @@
             </svg>
         </div>
         <span class="dock-label">Device</span>
-    </button>
-
-    <!-- 3. My Button (Orange) -->
-    <button type="button" class="dock-btn btn-my" id="dock-btn-my" onclick="onDockClick('my')" title="Admin Fleet Info">
-        <div class="dock-icon-wrapper">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-            </svg>
-        </div>
-        <span class="dock-label">My</span>
     </button>
 
     <!-- 4. Function Button (Grey) -->

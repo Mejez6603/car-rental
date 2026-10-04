@@ -293,9 +293,6 @@ function onDockClick(tab) {
         setActiveDockBtn('position');
     } else if (tab === 'device') {
         toggleModal('device-modal', 'device');
-    } else if (tab === 'my') {
-        toggleModal('my-modal', 'my');
-        updateMyStats();
     } else if (tab === 'function') {
         toggleModal('function-modal', 'function');
     }
@@ -332,7 +329,7 @@ function closeAllModals() {
 }
 
 function setupDomGuards() {
-    const ids = ['bottom-dock', 'device-modal', 'my-modal', 'function-modal', 'fleet-bar'];
+    const ids = ['bottom-dock', 'device-modal', 'function-modal', 'fleet-bar'];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (el && typeof L !== 'undefined' && L.DomEvent) {
@@ -344,7 +341,6 @@ function setupDomGuards() {
     const dockButtons = [
         { id: 'dock-btn-position', tab: 'position' },
         { id: 'dock-btn-device', tab: 'device' },
-        { id: 'dock-btn-my', tab: 'my' },
         { id: 'dock-btn-function', tab: 'function' }
     ];
 
