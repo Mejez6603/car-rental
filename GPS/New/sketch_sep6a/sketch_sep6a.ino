@@ -20,17 +20,18 @@
 #include "index.h"
 
 // --- Network Credentials ---
-const char apn[]      = "internet"; // Proven TNT APN
 const char gprsUser[] = "";
 const char gprsPass[] = "";
 
 // Compiled-in fallbacks, used only until the WiFi portal saves its own values
+const char* DEFAULT_APN    = "internet"; // Proven TNT/Smart APN
 const char* DEFAULT_SERVER = "sgp1.blynk.cloud";
 const uint16_t DEFAULT_PORT = 80;
 const char* DEFAULT_AUTH   = "6fub_AeSZfywBab9j-d7KRXWKFPMwIxz";
 
 // Live cloud config, editable from the portal and persisted in NVS
 Preferences prefs;
+String cfgApn;
 String cfgServer;
 uint16_t cfgPort;
 String cfgAuth;
@@ -155,10 +156,10 @@ void setup() {
   display.println("Connecting TNT 4G..."); 
   display.display();
   
-  if (modem.waitForNetwork(60000)) { 
+  if (modem.waitForNetwork(60000)) {
     delay(3000);
-    
-    if (modem.gprsConnect(apn, gprsUser, gprsPass)) {
+
+    if (modem.gprsConnect(cfgApn.c_str(), gprsUser, gprsPass)) {
       display.println("TNT 4G Connected!");
       cloudStatus = "Connected";
     } else {
@@ -240,6 +241,7 @@ void handleRoot() {
   html.replace("{PRIVACY_STATE}", screenOn ? "OFF (Screen Active)" : "ON (Screen Hidden)");
   html.replace("{PRIVACY_CHECKED}", screenOn ? "" : "checked");
 
+  html.replace("{CFG_APN}", cfgApn);
   html.replace("{CFG_SERVER}", cfgServer);
   html.replace("{CFG_PORT}", String(cfgPort));
 
@@ -276,6 +278,11 @@ void handleData() {
 // only as plaintext in source. Fields left blank keep their current value.
 void handleSettings() {
   prefs.begin("cloudcfg", false);
+
+  if (webServer.hasArg("apn") && webServer.arg("apn").length() > 0) {
+    cfgApn = webServer.arg("apn");
+    prefs.putString("apn", cfgApn);
+  }
 
   if (webServer.hasArg("server") && webServer.arg("server").length() > 0) {
     cfgServer = webServer.arg("server");
@@ -334,11 +341,17 @@ void sendDataToCloud(float l_lat, float l_lng, int l_sats) {
   http.beginRequest();
   http.get(url);
   http.endRequest();
-  cloudStatus = (http.responseStatusCode() == 200) ? "Connected" : "HTTP Err";
+
+  int statusCode = http.responseStatusCode();
+  // Negative codes = request/connection never got a real response (timeout,
+  // dropped link, no data balance). 4xx/5xx = it reached the server, which
+  // rejected it (bad auth token, wrong server/port, Blynk-side issue).
+  cloudStatus = (statusCode == 200) ? "Connected" : ("HTTP Err (" + String(statusCode) + ")");
 }
 
 void loadCloudConfig() {
   prefs.begin("cloudcfg", true);
+  cfgApn = prefs.getString("apn", DEFAULT_APN);
   cfgServer = prefs.getString("server", DEFAULT_SERVER);
   cfgPort = prefs.getUShort("port", DEFAULT_PORT);
   cfgAuth = prefs.getString("auth", DEFAULT_AUTH);
@@ -360,5 +373,5 @@ void ensureCellularConnection() {
     return;
   }
 
-  cloudStatus = modem.gprsConnect(apn, gprsUser, gprsPass) ? "Connected" : "GPRS Fail";
+  cloudStatus = modem.gprsConnect(cfgApn.c_str(), gprsUser, gprsPass) ? "Connected" : "GPRS Fail";
 }

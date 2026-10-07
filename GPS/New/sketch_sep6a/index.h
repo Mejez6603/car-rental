@@ -69,11 +69,13 @@ const char INDEX_HTML[] PROGMEM = R"=====(
     .footer{ text-align:center; margin-top:16px; font-size:11px; color:var(--muted); }
     .cfg-section{ padding-top:14px; border-top:1px solid var(--card-border); margin-top:4px; }
     .cfg-row{ display:flex; gap:8px; }
-    .cfg input{
+    .cfg input, .cfg select{
       width:100%; margin-bottom:8px; padding:9px 10px; border-radius:10px;
       border:1px solid var(--card-border); background:rgba(255,255,255,0.04);
       color:var(--text); font-size:13px;
     }
+    .cfg select{ background-color:#111c34; }
+    .cfg select option{ background:#111c34; color:var(--text); }
     .cfg input::placeholder{ color:var(--muted); }
     .cfg-row input:last-child{ max-width:90px; }
     .save-btn{ width:100%; padding:9px; border:none; border-radius:10px; background:var(--accent); color:#fff; font-size:13px; font-weight:600; cursor:pointer; }
@@ -122,6 +124,13 @@ const char INDEX_HTML[] PROGMEM = R"=====(
     <div class="cfg-section">
       <div class="label" style="margin-bottom:10px;">Cloud Sync</div>
       <form class="cfg" id="cfgForm" action="/settings" method="POST">
+        <select id="apnPreset">
+          <option value="">SIM carrier preset...</option>
+          <option value="internet">Smart / TNT / Sun</option>
+          <option value="internet.globe.com.ph">Globe / TM</option>
+          <option value="internet.dito.ph">DITO</option>
+        </select>
+        <input type="text" name="apn" id="apnInput" value="{CFG_APN}" placeholder="APN (e.g. internet)">
         <div class="cfg-row">
           <input type="text" name="server" value="{CFG_SERVER}" placeholder="Server">
           <input type="number" name="port" value="{CFG_PORT}" placeholder="Port">
@@ -205,6 +214,19 @@ const char INDEX_HTML[] PROGMEM = R"=====(
 
   var cfgForm = document.getElementById('cfgForm');
   var cfgMsg = document.getElementById('cfgMsg');
+  var apnPreset = document.getElementById('apnPreset');
+  var apnInput = document.getElementById('apnInput');
+
+  for (var i = 0; i < apnPreset.options.length; i++) {
+    if (apnPreset.options[i].value && apnPreset.options[i].value === apnInput.value) {
+      apnPreset.value = apnInput.value;
+      break;
+    }
+  }
+  apnPreset.addEventListener('change', function(){
+    if (apnPreset.value) apnInput.value = apnPreset.value;
+  });
+
   cfgForm.addEventListener('submit', function(e){
     e.preventDefault();
     var body = new URLSearchParams(new FormData(cfgForm));
