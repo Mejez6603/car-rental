@@ -3,6 +3,7 @@
 A professional-grade, privacy-conscious vehicle tracking system. This system allows the driver to toggle "Privacy Mode" physically from the car, while providing the owner with "Master Override" capabilities via a secure web dashboard.
 
 ![](image/image001.png) 
+![](image/schematic.png) 
 
 ---
 
