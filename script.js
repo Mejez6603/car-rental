@@ -247,12 +247,13 @@ function updateFleetBar() {
     const textEl = document.getElementById("fleet-count-text");
     const count = (markerIsOnMap ? 1 : 0) + (markerIsOnMap2 ? 1 : 0);
     if (textEl) {
+        const isMobile = window.innerWidth <= 480;
         if (count === 0) {
-            textEl.textContent = "Fleet Radar: No Live Pins";
+            textEl.textContent = isMobile ? "Fleet: No Pins" : "Fleet Radar: No Live Pins";
         } else if (count === 1) {
-            textEl.textContent = "Fleet Radar: 1 Vehicle Live";
+            textEl.textContent = isMobile ? "Fleet: 1 Live" : "Fleet Radar: 1 Vehicle Live";
         } else {
-            textEl.textContent = `Fleet Radar: ${count} Vehicles Live`;
+            textEl.textContent = isMobile ? `Fleet: ${count} Live` : `Fleet Radar: ${count} Vehicles Live`;
         }
     }
     updateMyStats();

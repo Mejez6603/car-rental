@@ -28,31 +28,38 @@ body {
    ========================================================================== */
 #fleet-bar {
     position: absolute;
-    top: 14px;
+    top: 12px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
-    background: rgba(15, 23, 42, 0.88);
+    background: rgba(15, 23, 42, 0.92);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.18);
     border-radius: 40px;
-    padding: 6px 14px;
+    padding: 5px 10px 5px 12px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    gap: 8px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-    max-width: calc(100vw - 32px);
+    max-width: calc(100vw - 20px);
+    width: auto;
+    box-sizing: border-box;
 }
 
 .fleet-status {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 0.82rem;
+    gap: 6px;
+    font-size: 0.76rem;
     font-weight: 700;
     color: #e2e8f0;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex-shrink: 1;
 }
 
 .fleet-dot {
@@ -75,16 +82,17 @@ body {
     background: #00B14F;
     color: #ffffff;
     border: none;
-    border-radius: 20px;
-    padding: 6px 12px;
-    font-size: 0.78rem;
+    border-radius: 16px;
+    padding: 5px 10px;
+    font-size: 0.72rem;
     font-weight: 800;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 4px;
     transition: all 0.2s ease;
     white-space: nowrap;
+    flex-shrink: 0;
     box-shadow: 0 2px 8px rgba(0, 177, 79, 0.35);
 }
 
@@ -705,6 +713,19 @@ body {
    RESPONSIVE ADJUSTMENTS
    ========================================================================== */
 @media (max-width: 480px) {
+    #fleet-bar {
+        top: 8px;
+        padding: 4px 8px 4px 10px;
+        gap: 6px;
+        max-width: calc(100vw - 16px);
+    }
+    .fleet-status {
+        font-size: 0.72rem;
+    }
+    #view-all-btn {
+        padding: 4px 8px;
+        font-size: 0.68rem;
+    }
     #bottom-dock {
         bottom: 16px;
         gap: 6px;
