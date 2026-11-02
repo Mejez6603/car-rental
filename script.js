@@ -5,6 +5,62 @@ const blynkServer = "sgp1.blynk.cloud";
 
 const cartoApiKey = "cb1_3p3v_1_c7e75ca303dcbd4b49651900";
 
+// --- CONSIGNOR ACCESS & GPS PRIVACY SCOPING ---
+const _urlParams = new URLSearchParams(window.location.search);
+let isConsignorMode = _urlParams.get('consignor') === 'true' || _urlParams.get('consignor') === '1';
+let allowedCarDevice = parseInt(_urlParams.get('car') || '1', 10);
+let allowedVehicleId = parseInt(_urlParams.get('vehicle_id') || '0', 10);
+
+function applyConsignorMapFilter() {
+    if (!isConsignorMode) return;
+    if (allowedCarDevice === 1) {
+        if (typeof markerIsOnMap2 !== 'undefined' && markerIsOnMap2 && typeof carMarker2 !== 'undefined') {
+            map.removeLayer(carMarker2);
+            markerIsOnMap2 = false;
+        }
+    } else if (allowedCarDevice === 2) {
+        if (typeof markerIsOnMap !== 'undefined' && markerIsOnMap && typeof carMarker !== 'undefined') {
+            map.removeLayer(carMarker);
+            markerIsOnMap = false;
+        }
+    }
+    const textEl = document.getElementById("fleet-count-text");
+    const viewAllBtn = document.getElementById("view-all-btn");
+    if (viewAllBtn) viewAllBtn.style.display = 'none';
+    if (textEl) {
+        const isLive = (allowedCarDevice === 1 ? markerIsOnMap : markerIsOnMap2);
+        textEl.textContent = isLive ? "Vehicle Radar: Live Signal" : "Vehicle Radar: Standby";
+    }
+}
+
+window.addEventListener('message', (event) => {
+    if (!event.data) return;
+    if (event.data.type === 'AUTORIDE_GPS_CONSIGNOR_LOCK' || event.data.consignor) {
+        isConsignorMode = true;
+        if (event.data.allowedCar || event.data.car) {
+            allowedCarDevice = parseInt(event.data.allowedCar || event.data.car, 10);
+        }
+        if (event.data.allowedVehicleId || event.data.vehicleId) {
+            allowedVehicleId = parseInt(event.data.allowedVehicleId || event.data.vehicleId, 10);
+        }
+        applyConsignorMapFilter();
+    } else if (event.data.type === 'AUTORIDE_GPS_SELECT_CAR') {
+        const targetCar = parseInt(event.data.car || '1', 10);
+        if (event.data.consignor) {
+            isConsignorMode = true;
+            allowedCarDevice = targetCar;
+            applyConsignorMapFilter();
+        } else {
+            if (targetCar === 1 && typeof markerIsOnMap !== 'undefined' && markerIsOnMap && typeof carMarker !== 'undefined') {
+                map.setView(carMarker.getLatLng(), 16);
+            } else if (targetCar === 2 && typeof markerIsOnMap2 !== 'undefined' && markerIsOnMap2 && typeof carMarker2 !== 'undefined') {
+                map.setView(carMarker2.getLatLng(), 16);
+            }
+        }
+    }
+});
+
+
 const map = L.map('map', { zoomControl: false }).setView([14.0893, 121.3138], 15);
 L.control.zoom({ position: 'topright' }).addTo(map);
 
@@ -244,6 +300,11 @@ async function syncFleetListFromAPI() {
 
 // --- FLEET BAR & RADAR LOGIC ---
 function updateFleetBar() {
+    if (isConsignorMode) {
+        applyConsignorMapFilter();
+        updateMyStats();
+        return;
+    }
     const textEl = document.getElementById("fleet-count-text");
     const count = (markerIsOnMap ? 1 : 0) + (markerIsOnMap2 ? 1 : 0);
     if (textEl) {
